@@ -10,7 +10,7 @@ function importAll(r) {
   
 const datasets = importAll(require.context('../../datasets', false, /\.(json)$/));
 const dataset_list = ['bodyy6.mtx', 'fe_4elt2.mtx', 'finance256.mtx', 'pkustk01.mtx', 'pkustk02.mtx', 'sf_ba6000'];
-console.log(datasets['sf_ba6000']);
+console.log(datasets);
 
 type SidebarProps = {
   setNodeEdgeData: (nodeData : Array<number>, edgeData : Array<number>, sourceEdges : Array<number>, targetEdges : Array<number>) => void,
@@ -50,6 +50,7 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
   
       this.handleSubmit = this.handleSubmit.bind(this);
       this.readJson = this.readJson.bind(this);
+      this.chooseDataset = this.chooseDataset.bind(this);
     }
   
     handleSubmit(event) {
@@ -57,54 +58,62 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
       this.props.setNodeEdgeData(this.state.nodeData, this.state.edgeData, this.state.sourceEdges, this.state.targetEdges);
     }
 
-    readJson(event : React.ChangeEvent<HTMLInputElement>) {
-      const files : FileList = event.target.files!;
-      const jsonReader = new FileReader();
+    loadGraph(graph : Graph) {
       var nodeData : Array<number> = [];
       var edgeData : Array<number> = [];
       var sourceEdges : Array<number> = [];
       var targetEdges : Array<number> = [];
+      console.log(graph);
+      for (var i = 0; i < graph.nodes.length; i++) {
+        if (graph.nodes[i].x) {
+          nodeData.push(0.0, graph.nodes[i].x, graph.nodes[i].y, 1.0);
+        } else {
+          nodeData.push(0.0, Math.random(), Math.random(), 1.0);
+        }
+      }
+      for (var i = 0; i < graph.edges.length; i++) {
+        var source = graph.edges[i].source;
+        var target = graph.edges[i].target;
+        edgeData.push(source, target);
+      }
+      graph.edges.sort(function(a,b) {return (a.source > b.source) ? 1 : ((b.source > a.source) ? -1 : 0);} );
+      for (var i = 0; i < graph.edges.length; i++) {
+        var source = graph.edges[i].source;
+        var target = graph.edges[i].target;
+        sourceEdges.push(source, target);
+      }
+      console.log(sourceEdges);
+      graph.edges.sort(function(a,b) {return (a.target > b.target) ? 1 : ((b.target > a.target) ? -1 : 0);} );
+      for (var i = 0; i < graph.edges.length; i++) {
+        var source = graph.edges[i].source;
+        var target = graph.edges[i].target;
+        targetEdges.push(source, target);
+      }
+      console.log(graph.edges);
+      this.setState({nodeData: nodeData, edgeData: edgeData, sourceEdges: sourceEdges, targetEdges: targetEdges});
+    }
+
+    readJson(event : React.ChangeEvent<HTMLInputElement>) {
+      const files : FileList = event.target.files!;
+      const jsonReader = new FileReader();
       jsonReader.onload = (event) => {
-        var graph : Graph = JSON.parse(jsonReader.result as string);
-        console.log(graph);
-        for (var i = 0; i < graph.nodes.length; i++) {
-          if (graph.nodes[i].x) {
-            nodeData.push(0.0, graph.nodes[i].x, graph.nodes[i].y, 1.0);
-          } else {
-            nodeData.push(0.0, Math.random(), Math.random(), 1.0);
-          }
-        }
-        for (var i = 0; i < graph.edges.length; i++) {
-          var source = graph.edges[i].source;
-          var target = graph.edges[i].target;
-          edgeData.push(source, target);
-        }
-        graph.edges.sort(function(a,b) {return (a.source > b.source) ? 1 : ((b.source > a.source) ? -1 : 0);} );
-        for (var i = 0; i < graph.edges.length; i++) {
-          var source = graph.edges[i].source;
-          var target = graph.edges[i].target;
-          sourceEdges.push(source, target);
-        }
-        console.log(sourceEdges);
-        graph.edges.sort(function(a,b) {return (a.target > b.target) ? 1 : ((b.target > a.target) ? -1 : 0);} );
-        for (var i = 0; i < graph.edges.length; i++) {
-          var source = graph.edges[i].source;
-          var target = graph.edges[i].target;
-          targetEdges.push(source, target);
-        }
-        console.log(graph.edges);
-        this.setState({nodeData: nodeData, edgeData: edgeData, sourceEdges: sourceEdges, targetEdges: targetEdges});
+        this.loadGraph(JSON.parse(jsonReader.result as string) as Graph);
       };
       jsonReader.readAsText(files[0]);
+    }
+
+    chooseDataset(dataset) {
+      this.loadGraph(datasets[`${dataset}.json`] as Graph);
     }
   
     render() {
       return (
         <div className="sidebar"> 
         <Form style={{color: 'white'}} onSubmit={this.handleSubmit}>
-          <Select style={{color: 'black'}} className='m-2' placeholder="Choose dataset..." onChange={(e) => console.log(e!.value)} options={ dataset_list.map((cm) => {return {"label": cm, "value": cm}})}></Select>
           <Form.Group controlId="formFile" className="mt-3 mb-3">
-            <Form.Label>Select Example Files</Form.Label>
+            <Form.Label>Choose from list of datasets...</Form.Label>
+            <Select className='black' placeholder="Choose dataset..." onChange={(e) => this.chooseDataset(e!.value)} options={ dataset_list.map((cm) => {return {"label": cm, "value": cm}})}></Select>
+            <Form.Label>Choose your own JSON file...</Form.Label>
             <Form.Control className="form-control" type="file" multiple onChange={(e) => {this.readJson(e as React.ChangeEvent<HTMLInputElement>)}}/>
             <Button className="mt-2" type="submit" variant="secondary" value="Submit">Submit</ Button>
           </Form.Group>
