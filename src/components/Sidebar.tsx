@@ -1,6 +1,16 @@
 import React from 'react';
 import {Form, Button} from "react-bootstrap";
 import Collapsible from 'react-collapsible';
+import Select from 'react-select';
+function importAll(r) {
+    let datasets = {};
+    r.keys().map((item, index) => { datasets[item.replace('./', '').replace('.png', '')] = r(item); });
+    return datasets;
+}
+  
+const datasets = importAll(require.context('../../datasets', false, /\.(json)$/));
+const dataset_list = ['bodyy6.mtx', 'fe_4elt2.mtx', 'finance256.mtx', 'pkustk01.mtx', 'pkustk02.mtx', 'sf_ba6000'];
+console.log(datasets['sf_ba6000']);
 
 type SidebarProps = {
   setNodeEdgeData: (nodeData : Array<number>, edgeData : Array<number>, sourceEdges : Array<number>, targetEdges : Array<number>) => void,
@@ -92,6 +102,7 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
       return (
         <div className="sidebar"> 
         <Form style={{color: 'white'}} onSubmit={this.handleSubmit}>
+          <Select style={{color: 'black'}} className='m-2' placeholder="Choose dataset..." onChange={(e) => console.log(e!.value)} options={ dataset_list.map((cm) => {return {"label": cm, "value": cm}})}></Select>
           <Form.Group controlId="formFile" className="mt-3 mb-3">
             <Form.Label>Select Example Files</Form.Label>
             <Form.Control className="form-control" type="file" multiple onChange={(e) => {this.readJson(e as React.ChangeEvent<HTMLInputElement>)}}/>
