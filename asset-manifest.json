@@ -1,8 +1,8 @@
 {
   "files": {
     "main.css": "//harp-lab.github.io/GraphWaGu/static/css/main.7576a132.chunk.css",
-    "main.js": "//harp-lab.github.io/GraphWaGu/static/js/main.35f9bb0b.chunk.js",
-    "main.js.map": "//harp-lab.github.io/GraphWaGu/static/js/main.35f9bb0b.chunk.js.map",
+    "main.js": "//harp-lab.github.io/GraphWaGu/static/js/main.0b4a6192.chunk.js",
+    "main.js.map": "//harp-lab.github.io/GraphWaGu/static/js/main.0b4a6192.chunk.js.map",
     "runtime-main.js": "//harp-lab.github.io/GraphWaGu/static/js/runtime-main.8f1e0de0.js",
     "runtime-main.js.map": "//harp-lab.github.io/GraphWaGu/static/js/runtime-main.8f1e0de0.js.map",
     "static/js/2.c14614f0.chunk.js": "//harp-lab.github.io/GraphWaGu/static/js/2.c14614f0.chunk.js",
@@ -15,6 +15,6 @@
     "static/js/runtime-main.8f1e0de0.js",
     "static/js/2.c14614f0.chunk.js",
     "static/css/main.7576a132.chunk.css",
-    "static/js/main.35f9bb0b.chunk.js"
+    "static/js/main.0b4a6192.chunk.js"
   ]
 }
