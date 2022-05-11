@@ -1,5 +1,6 @@
 import React from 'react';
 import Sidebar from './Sidebar';
+import Tutorial from './Tutorial';
 import { createRef, MutableRefObject } from 'react';
 import Renderer from "../webgpu/render";
 import { Form } from 'react-bootstrap';
@@ -9,6 +10,7 @@ type PageState = {
     outCanvasRef: MutableRefObject<HTMLCanvasElement | null>,
     iterRef: MutableRefObject<HTMLLabelElement | null>,
     renderer: Renderer | null,
+    renderTutorial: boolean,
 }
 class Page extends React.Component<{}, PageState> {
     constructor(props) {
@@ -17,8 +19,9 @@ class Page extends React.Component<{}, PageState> {
             canvasRef: createRef<HTMLCanvasElement | null>(), 
             outCanvasRef: createRef<HTMLCanvasElement | null>(), 
             iterRef: createRef<HTMLLabelElement | null>(),
-            renderer: null
+            renderer: null, renderTutorial: true
         };
+        this.unmountTutorial = this.unmountTutorial.bind(this);
     }
 
     async componentDidMount() {
@@ -65,10 +68,15 @@ class Page extends React.Component<{}, PageState> {
     runForceDirected() {
         this.state.renderer!.runForceDirected();
     }
+
+    unmountTutorial() {
+        this.setState({renderTutorial: false});
+    }
   
     render() {
       return (
         <div>
+            {this.state.renderTutorial ?  <Tutorial unmount={this.unmountTutorial}/> : null}
             <Sidebar 
                 setNodeEdgeData={this.setNodeEdgeData.bind(this)} 
                 setIdealLength={this.setIdealLength.bind(this)}

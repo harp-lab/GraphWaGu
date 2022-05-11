@@ -22,7 +22,7 @@ class Renderer {
   public outCanvasRef : React.RefObject<HTMLCanvasElement>;
   public canvasSize : [number, number] | null = null;
   public idealLength : number = 0.01;
-  public coolingFactor : number = 0.975;
+  public coolingFactor : number = 0.985;
   public iterRef : React.RefObject<HTMLLabelElement>;
   public frame : (() => void) | undefined;
   public edgeList : Array<number> = [];

@@ -9,7 +9,7 @@ function importAll(r) {
 }
   
 const datasets = importAll(require.context('../../datasets', false, /\.(json)$/));
-const dataset_list = ['bodyy6.mtx', 'fe_4elt2.mtx', 'finance256.mtx', 'pkustk01.mtx', 'pkustk02.mtx', 'sf_ba6000'];
+const dataset_list = ['sf_ba6000', 'fe_4elt2.mtx', 'pkustk02.mtx', 'pkustk01.mtx', 'finance256.mtx'];
 console.log(datasets);
 
 type SidebarProps = {
@@ -125,7 +125,7 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
             <Form.Label> Ideal Length and Cooling Factor </Form.Label>
             <br/>
             <input type="range" defaultValue={0.01} min={0.001} max={0.05} step={0.001} onChange={(e) => this.props.setIdealLength(parseFloat(e.target.value))} />
-            <input type="range" defaultValue={0.975} min={0.85} max={0.999} step={0.001} onChange={(e) => this.props.setCoolingFactor(parseFloat(e.target.value))} />
+            <input type="range" defaultValue={0.985} min={0.85} max={0.999} step={0.001} onChange={(e) => this.props.setCoolingFactor(parseFloat(e.target.value))} />
           </Collapsible>
           <br/>
           <Button onClick={(e) => this.props.runForceDirected()}>

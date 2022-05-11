@@ -20,7 +20,7 @@ class ForceDirected {
     public laplacianBuffer: GPUBuffer;
     public quadTreeBuffer: GPUBuffer;
     public forceDataBuffer: GPUBuffer;
-    public coolingFactor: number = 0.975;
+    public coolingFactor: number = 0.985;
     public device: GPUDevice;
     public createMatrixPipeline : GPUComputePipeline;
     public createQuadTreePipeline : GPUComputePipeline;
