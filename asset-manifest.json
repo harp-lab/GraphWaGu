@@ -1,20 +1,20 @@
 {
   "files": {
     "main.css": "/GraphWaGu/static/css/main.8a7832e9.chunk.css",
-    "main.js": "/GraphWaGu/static/js/main.f5ca070c.chunk.js",
-    "main.js.map": "/GraphWaGu/static/js/main.f5ca070c.chunk.js.map",
+    "main.js": "/GraphWaGu/static/js/main.483893df.chunk.js",
+    "main.js.map": "/GraphWaGu/static/js/main.483893df.chunk.js.map",
     "runtime-main.js": "/GraphWaGu/static/js/runtime-main.fd678c62.js",
     "runtime-main.js.map": "/GraphWaGu/static/js/runtime-main.fd678c62.js.map",
-    "static/js/2.e70f4e2d.chunk.js": "/GraphWaGu/static/js/2.e70f4e2d.chunk.js",
-    "static/js/2.e70f4e2d.chunk.js.map": "/GraphWaGu/static/js/2.e70f4e2d.chunk.js.map",
+    "static/js/2.575c5267.chunk.js": "/GraphWaGu/static/js/2.575c5267.chunk.js",
+    "static/js/2.575c5267.chunk.js.map": "/GraphWaGu/static/js/2.575c5267.chunk.js.map",
     "index.html": "/GraphWaGu/index.html",
     "static/css/main.8a7832e9.chunk.css.map": "/GraphWaGu/static/css/main.8a7832e9.chunk.css.map",
-    "static/js/2.e70f4e2d.chunk.js.LICENSE.txt": "/GraphWaGu/static/js/2.e70f4e2d.chunk.js.LICENSE.txt"
+    "static/js/2.575c5267.chunk.js.LICENSE.txt": "/GraphWaGu/static/js/2.575c5267.chunk.js.LICENSE.txt"
   },
   "entrypoints": [
     "static/js/runtime-main.fd678c62.js",
-    "static/js/2.e70f4e2d.chunk.js",
+    "static/js/2.575c5267.chunk.js",
     "static/css/main.8a7832e9.chunk.css",
-    "static/js/main.f5ca070c.chunk.js"
+    "static/js/main.483893df.chunk.js"
   ]
 }
