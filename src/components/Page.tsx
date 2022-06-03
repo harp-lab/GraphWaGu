@@ -30,9 +30,6 @@ class Page extends React.Component<{}, PageState> {
         }))!;
         console.log(adapter);
         const device = await adapter.requestDevice({
-            requiredFeatures: [
-                "timestamp-query" as GPUFeatureName,
-            ],
             requiredLimits: {
                 "maxStorageBufferBindingSize": adapter.limits.maxStorageBufferBindingSize,
                 "maxComputeWorkgroupsPerDimension": adapter.limits.maxComputeWorkgroupsPerDimension
