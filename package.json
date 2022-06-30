@@ -78,6 +78,5 @@
   "devDependencies": {
     "@types/file-saver": "^2.0.4",
     "gh-pages": "^3.2.3"
-  },
-  "homepage": "https://https://harp-lab.github.io/GraphWaGu/"
+  }
 }
