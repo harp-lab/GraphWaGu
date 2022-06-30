@@ -1,22 +1,22 @@
 struct Node {
-    value : f32,
-    x : f32,
-    y : f32,
-    size : f32,
+    value : f32;
+    x : f32;
+    y : f32;
+    size : f32;
 };
 struct Nodes {
-    nodes : array<Node>,
+    nodes : array<Node>;
 };
 struct VertexOutput {
-    @builtin(position) Position : vec4<f32>,
-    @location(0) position: vec2<f32>,
-    @location(1) @interpolate(flat) center : vec2<f32>,
+    @builtin(position) Position : vec4<f32>;
+    @location(0) position: vec2<f32>;
+    @location(1) @interpolate(flat) center : vec2<f32>;
 };
 struct Uniforms {
-  view_box : vec4<f32>,
+  view_box : vec4<f32>;
 };
 struct Edges {
-    edges : array<u32>,
+    edges : array<u32>;
 };
 
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;

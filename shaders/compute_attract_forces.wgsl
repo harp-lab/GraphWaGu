@@ -1,23 +1,23 @@
 struct Node {
-    value : f32,
-    x : f32,
-    y : f32,
-    size : f32,
+    value : f32;
+    x : f32;
+    y : f32;
+    size : f32;
 };
 struct Nodes {
-    nodes : array<Node>,
+    nodes : array<Node>;
 };
 struct Edges {
-    edges : array<u32>,
+    edges : array<u32>;
 };
 struct Forces {
-    forces : array<f32>,
+    forces : array<f32>;
 };
 struct Uniforms {
-    nodes_length : u32,
-    edges_length : u32,
-    cooling_factor : f32,
-    ideal_length : f32,
+    nodes_length : u32;
+    edges_length : u32;
+    cooling_factor : f32;
+    ideal_length : f32;
 };
 
 @group(0) @binding(0) var<storage, read> nodes : Nodes;

@@ -1,32 +1,32 @@
 struct Node {
-    value : f32,
-    x : f32,
-    y : f32,
-    size : f32,
+    value : f32;
+    x : f32;
+    y : f32;
+    size : f32;
 };
 struct Nodes {
-    nodes : array<Node>,
+    nodes : array<Node>;
 };
 struct Forces {
-    forces : array<f32>,
+    forces : array<f32>;
 };
 struct UintArray {
-    a : array<u32>,
+    a : array<u32>;
 };
 struct EdgeInfo {
-    source_start : u32,
-    source_degree : u32,
-    target_start : u32,
-    target_degree : u32,
+    source_start : u32;
+    source_degree : u32;
+    target_start : u32;
+    target_degree : u32;
 }
 struct EdgeInfoArray {
-    a : array<EdgeInfo>,
+    a : array<EdgeInfo>;
 };
 struct Uniforms {
-    nodes_length : u32,
-    edges_length : u32,
-    cooling_factor : f32,
-    ideal_length : f32,
+    nodes_length : u32;
+    edges_length : u32;
+    cooling_factor : f32;
+    ideal_length : f32;
 };
 
 @group(0) @binding(0) var<storage, read_write> edge_info : EdgeInfoArray;

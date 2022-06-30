@@ -1,17 +1,17 @@
 struct Edges {
-    edges : array<u32>,
+    edges : array<u32>;
 };
 struct BoolArray {
-    matrix : array<u32>,
+    matrix : array<u32>;
 };
 struct Uniforms {
-    nodes_length : u32,
-    edges_length : u32,
-    cooling_factor : f32,
-    ideal_length : f32,
+    nodes_length : u32;
+    edges_length : u32;
+    cooling_factor : f32;
+    ideal_length : f32;
 };
 struct IntArray {
-    matrix : array<i32>,
+    matrix : array<i32>;
 };
 
 @group(0) @binding(0) var<storage, read> edges : Edges;

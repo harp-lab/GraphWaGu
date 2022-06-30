@@ -36,6 +36,21 @@
   background-color: white;
 }
 
+.fill-window {
+  height: 150%;
+  position: absolute;
+  left: 0;
+  width: 100%;
+  overflow: hidden;
+  z-index: 2;
+  background-color: rgba(200, 200, 200, 0.85);
+}
+
+.markdown {
+  font-size: larger;
+  text-align: left;
+}
+
 .canvasContainer {
   text-align: center;
   position: absolute;
