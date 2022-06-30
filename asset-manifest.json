@@ -1,8 +1,8 @@
 {
   "files": {
     "main.css": "/GraphWaGu/static/css/main.8a7832e9.chunk.css",
-    "main.js": "/GraphWaGu/static/js/main.7aed111f.chunk.js",
-    "main.js.map": "/GraphWaGu/static/js/main.7aed111f.chunk.js.map",
+    "main.js": "/GraphWaGu/static/js/main.ee294ecd.chunk.js",
+    "main.js.map": "/GraphWaGu/static/js/main.ee294ecd.chunk.js.map",
     "runtime-main.js": "/GraphWaGu/static/js/runtime-main.fd678c62.js",
     "runtime-main.js.map": "/GraphWaGu/static/js/runtime-main.fd678c62.js.map",
     "static/js/2.575c5267.chunk.js": "/GraphWaGu/static/js/2.575c5267.chunk.js",
@@ -15,6 +15,6 @@
     "static/js/runtime-main.fd678c62.js",
     "static/js/2.575c5267.chunk.js",
     "static/css/main.8a7832e9.chunk.css",
-    "static/js/main.7aed111f.chunk.js"
+    "static/js/main.ee294ecd.chunk.js"
   ]
 }
