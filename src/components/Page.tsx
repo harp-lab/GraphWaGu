@@ -33,6 +33,11 @@ class Page extends React.Component<{}, PageState> {
         const adapter = (await navigator.gpu.requestAdapter({
             powerPreference: "high-performance",
         }))!;
+        if (!adapter) {
+            alert("GraphWaGu requires WebGPU, which is not currently enabled. You may be using an incompatible web browser or hardware, or have this feature disabled. If you are using Chrome, enable the setting at chrome://flags/#enable-unsafe-webgpu. If you are using Safari, first enable the Developer Menu (Preferences > Advanced), then check Develop > Experimental Features > WebGPU.");      
+            this.setState({renderAlert: true});
+            return;
+        }
         console.log(adapter);
         const device = await adapter.requestDevice({
             requiredLimits: {
