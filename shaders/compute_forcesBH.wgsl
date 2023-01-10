@@ -1,58 +1,58 @@
 struct Node {
-    value : f32;
-    x : f32;
-    y : f32;
-    size : f32;
+    value : f32,
+    x : f32,
+    y : f32,
+    size : f32,
 };
 struct Nodes {
-    nodes : array<Node>;
+    nodes : array<Node>,
 };
 struct Edges {
-    edges : array<u32>;
+    edges : array<u32>,
 };
 struct Stack {
-    a : array<u32>;
+    a : array<u32>,
 }
 struct Forces {
-    forces : array<f32>;
+    forces : array<f32>,
 };
 struct Uniforms {
-    nodes_length : u32;
-    edges_length : u32;
-    cooling_factor : f32;
-    ideal_length : f32;
+    nodes_length : u32,
+    edges_length : u32,
+    cooling_factor : f32,
+    ideal_length : f32,
 };
 struct Rectangle {
-    x : f32;
-    y : f32;
-    w : f32;
-    h : f32;
+    x : f32,
+    y : f32,
+    w : f32,
+    h : f32,
 };
 struct QuadTree {
-    boundary : Rectangle;
-    NW : f32;
-    NE : f32;
-    SW : f32;
-    SE : f32;
-    CoM : vec2<f32>;
-    mass : f32;
-    test : f32;
+    boundary : Rectangle,
+    NW : f32,
+    NE : f32,
+    SW : f32,
+    SE : f32,
+    CoM : vec2<f32>,
+    mass : f32,
+    test : f32,
 };
 struct QuadTrees {
-    quads : array<QuadTree>;
+    quads : array<QuadTree>,
 }
 struct Batch {
-    batch_id : u32;
+    batch_id : u32,
 }
 
 @group(0) @binding(0) var<storage, read> nodes : Nodes;
-@group(0) @binding(1) var<storage, write> forces : Forces;
+@group(0) @binding(1) var<storage, read_write> forces : Forces;
 @group(0) @binding(2) var<uniform> uniforms : Uniforms;
 @group(0) @binding(3) var<storage, read> quads : QuadTrees;
-@group(0) @binding(4) var<storage, write> stack : Stack;
+@group(0) @binding(4) var<storage, read_write> stack : Stack;
 @group(0) @binding(5) var<uniform> batch : Batch;
 
-@stage(compute) @workgroup_size(1, 1, 1)
+@compute @workgroup_size(1, 1, 1)
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     let l : f32 = uniforms.ideal_length;
     var batch_index : u32 = global_id.x + batch.batch_id * (uniforms.nodes_length / 1u);

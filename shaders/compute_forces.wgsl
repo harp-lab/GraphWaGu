@@ -1,28 +1,28 @@
 struct Node {
-    value : f32;
-    x : f32;
-    y : f32;
-    size : f32;
+    value : f32,
+    x : f32,
+    y : f32,
+    size : f32,
 };
 struct Nodes {
-    nodes : array<Node>;
+    nodes : array<Node>,
 };
 struct Edges {
-    edges : array<u32>;
+    edges : array<u32>,
 };
 struct Forces {
-    forces : array<f32>;
+    forces : array<f32>,
 };
 struct Uniforms {
-    nodes_length : u32;
-    edges_length : u32;
-    cooling_factor : f32;
-    ideal_length : f32;
+    nodes_length : u32,
+    edges_length : u32,
+    cooling_factor : f32,
+    ideal_length : f32,
 };
 
 @group(0) @binding(0) var<storage, read> nodes : Nodes;
 @group(0) @binding(1) var<storage, read> adjmat : Edges;
-@group(0) @binding(2) var<storage, write> forces : Forces;
+@group(0) @binding(2) var<storage, read_write> forces : Forces;
 @group(0) @binding(3) var<uniform> uniforms : Uniforms;
 
 fn get_bit_selector(bit_index : u32) -> u32 {
@@ -33,7 +33,7 @@ fn get_nth_bit(packed : u32, bit_index : u32) -> u32 {
     return packed & get_bit_selector(bit_index);
 }
 
-@stage(compute) @workgroup_size(1, 1, 1)
+@compute @workgroup_size(1, 1, 1)
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     let l : f32 = uniforms.ideal_length;
     let node : Node = nodes.nodes[global_id.x];

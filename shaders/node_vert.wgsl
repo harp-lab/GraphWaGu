@@ -1,28 +1,28 @@
 struct Node {
-    value : f32;
-    x : f32;
-    y : f32;
-    size : f32;
+    value : f32,
+    x : f32,
+    y : f32,
+    size : f32,
 };
 struct Nodes {
-    nodes : array<Node>;
+    nodes : array<Node>,
 };
 struct VertexOutput {
-    @builtin(position) Position : vec4<f32>;
-    @location(0) position: vec2<f32>;
-    @location(1) @interpolate(flat) center : vec2<f32>;
+    @builtin(position) Position : vec4<f32>,
+    @location(0) position: vec2<f32>,
+    @location(1) @interpolate(flat) center : vec2<f32>,
 };
 struct Uniforms {
-  view_box : vec4<f32>;
+  view_box : vec4<f32>,
 };
 struct Edges {
-    edges : array<u32>;
+    edges : array<u32>,
 };
 
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
 @group(0) @binding(1) var<storage, read> nodes : Nodes;
 
-@stage(vertex)
+@vertex
 fn main(@builtin(instance_index) index : u32, @location(0) position : vec2<f32>)
      -> VertexOutput {
     var node_center : vec2<f32> = 2.0 * vec2<f32>(nodes.nodes[index].x, nodes.nodes[index].y) - vec2<f32>(1.0);
