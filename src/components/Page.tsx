@@ -19,7 +19,7 @@ class Page extends React.Component<{}, PageState> {
             canvasRef: createRef<HTMLCanvasElement | null>(), 
             outCanvasRef: createRef<HTMLCanvasElement | null>(), 
             iterRef: createRef<HTMLLabelElement | null>(),
-            renderer: null, renderTutorial: true, renderAlert: false
+            renderer: null, renderTutorial: false, renderAlert: false
         };
         this.unmountTutorial = this.unmountTutorial.bind(this);
     }
@@ -38,14 +38,12 @@ class Page extends React.Component<{}, PageState> {
             this.setState({renderAlert: true});
             return;
         }
-        console.log(adapter);
         const device = await adapter.requestDevice({
             requiredLimits: {
                 "maxStorageBufferBindingSize": adapter.limits.maxStorageBufferBindingSize,
                 "maxComputeWorkgroupsPerDimension": adapter.limits.maxComputeWorkgroupsPerDimension
             }
         }); 
-        console.log(device);
         this.setState({renderer: new Renderer(
             adapter, device, this.state.canvasRef, 
             this.state.outCanvasRef, this.state.iterRef)

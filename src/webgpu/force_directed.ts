@@ -1,4 +1,3 @@
-import { buffer } from 'd3';
 import {
     apply_forces,
     create_adjacency_matrix,
@@ -10,9 +9,8 @@ import {
     create_targetlist,
     create_sourcelist,
 } from './wgsl';
-import * as fs from 'fs';
 
-class ForceDirected {
+export class ForceDirected {
     public paramsBuffer: GPUBuffer;
     public nodeDataBuffer: GPUBuffer;
     public edgeDataBuffer: GPUBuffer;
@@ -22,11 +20,11 @@ class ForceDirected {
     public forceDataBuffer: GPUBuffer;
     public coolingFactor: number = 0.985;
     public device: GPUDevice;
-    public createMatrixPipeline : GPUComputePipeline;
-    public createQuadTreePipeline : GPUComputePipeline;
-    public createSourceListPipeline : GPUComputePipeline;
-    public createTargetListPipeline : GPUComputePipeline;
-    public computeAttractiveNewPipeline : GPUComputePipeline;
+    public createMatrixPipeline: GPUComputePipeline;
+    public createQuadTreePipeline: GPUComputePipeline;
+    public createSourceListPipeline: GPUComputePipeline;
+    public createTargetListPipeline: GPUComputePipeline;
+    public computeAttractiveNewPipeline: GPUComputePipeline;
     public computeForcesPipeline: GPUComputePipeline;
     public computeForcesBHPipeline: GPUComputePipeline;
     public computeAttractForcesPipeline: GPUComputePipeline;
@@ -35,7 +33,7 @@ class ForceDirected {
     public threshold: number = 100;
     public force: number = 1000.0;
 
-    constructor(device: GPUDevice) {
+    constructor (device: GPUDevice) {
         this.device = device;
 
         this.nodeDataBuffer = this.device.createBuffer({
@@ -69,6 +67,7 @@ class ForceDirected {
         });
 
         this.createMatrixPipeline = device.createComputePipeline({
+            layout: 'auto',
             compute: {
                 module: device.createShaderModule({
                     code: create_adjacency_matrix
@@ -78,6 +77,7 @@ class ForceDirected {
         });
 
         this.createQuadTreePipeline = device.createComputePipeline({
+            layout: 'auto',
             compute: {
                 module: device.createShaderModule({
                     code: create_quadtree
@@ -87,6 +87,7 @@ class ForceDirected {
         });
 
         this.createSourceListPipeline = device.createComputePipeline({
+            layout: 'auto',
             compute: {
                 module: device.createShaderModule({
                     code: create_sourcelist
@@ -96,6 +97,7 @@ class ForceDirected {
         });
 
         this.createTargetListPipeline = device.createComputePipeline({
+            layout: 'auto',
             compute: {
                 module: device.createShaderModule({
                     code: create_targetlist
@@ -105,6 +107,7 @@ class ForceDirected {
         });
 
         this.computeAttractiveNewPipeline = device.createComputePipeline({
+            layout: 'auto',
             compute: {
                 module: device.createShaderModule({
                     code: compute_attractive_new
@@ -114,6 +117,7 @@ class ForceDirected {
         });
 
         this.computeForcesPipeline = device.createComputePipeline({
+            layout: 'auto',
             compute: {
                 module: device.createShaderModule({
                     code: compute_forces,
@@ -123,6 +127,7 @@ class ForceDirected {
         });
 
         this.computeForcesBHPipeline = device.createComputePipeline({
+            layout: 'auto',
             compute: {
                 module: device.createShaderModule({
                     code: compute_forcesBH,
@@ -132,6 +137,7 @@ class ForceDirected {
         });
 
         this.computeAttractForcesPipeline = device.createComputePipeline({
+            layout: 'auto',
             compute: {
                 module: device.createShaderModule({
                     code: compute_attract_forces,
@@ -141,6 +147,7 @@ class ForceDirected {
         });
 
         this.applyForcesPipeline = device.createComputePipeline({
+            layout: 'auto',
             compute: {
                 module: device.createShaderModule({
                     code: apply_forces,
@@ -157,59 +164,57 @@ class ForceDirected {
     }
 
     formatToD3Format(positionList, edgeList, nLength, eLength) {
-        let nodeArray1 = new Array(nLength);
-        let edgeArray1 = new Array(eLength / 2);
-    
+        const nodeArray = new Array(nLength);
+        const edgeArray = new Array(eLength / 2);
+
         for (let i = 0; i < 4 * nLength; i = i + 4) {
-          nodeArray1[i / 4] = {};
-          nodeArray1[i / 4].index = i / 4;
-          nodeArray1[i / 4].name = (i / 4).toString();
-          nodeArray1[i / 4].x = positionList[i + 1];
-          nodeArray1[i / 4].y = positionList[i + 2];
+            nodeArray[i / 4] = {
+                index: i / 4,
+                name: (i / 4).toString(),
+                x: positionList[i + 1],
+                y: positionList[i + 2]
+            };
         }
-    
+
         for (let i = 0; i < eLength; i = i + 2) {
-          edgeArray1[i / 2] = {};
-          let sourceIndex = edgeList[i];
-          let targetIndex = edgeList[i + 1];
-    
-          edgeArray1[i / 2].index = i / 2;
-          edgeArray1[i / 2].source = {};
-          edgeArray1[i / 2].source.index = sourceIndex;
-          edgeArray1[i / 2].source.name = sourceIndex.toString();
-          edgeArray1[i / 2].source.x = nodeArray1[sourceIndex].x;
-          edgeArray1[i / 2].source.y = nodeArray1[sourceIndex].y;
-    
-          edgeArray1[i / 2].target = {};
-          edgeArray1[i / 2].target.index = targetIndex;
-          edgeArray1[i / 2].target.name = targetIndex.toString();
-          edgeArray1[i / 2].target.x = nodeArray1[targetIndex].x;
-          edgeArray1[i / 2].target.y = nodeArray1[targetIndex].y;
+            let sourceIndex = edgeList[i];
+            let targetIndex = edgeList[i + 1];
+
+            edgeArray[i / 2] = {};
+
+            edgeArray[i / 2].index = i / 2;
+            edgeArray[i / 2].source = {};
+            edgeArray[i / 2].source.index = sourceIndex;
+            edgeArray[i / 2].source.name = sourceIndex.toString();
+            edgeArray[i / 2].source.x = nodeArray[sourceIndex].x;
+            edgeArray[i / 2].source.y = nodeArray[sourceIndex].y;
+
+            edgeArray[i / 2].target = {};
+            edgeArray[i / 2].target.index = targetIndex;
+            edgeArray[i / 2].target.name = targetIndex.toString();
+            edgeArray[i / 2].target.x = nodeArray[targetIndex].x;
+            edgeArray[i / 2].target.y = nodeArray[targetIndex].y;
         }
-    
-        return {
-          nodeArray: nodeArray1,
-          edgeArray: edgeArray1,
-        };
-      }
+
+        return { nodeArray, edgeArray }
+    }
 
     async runForces(
-        nodeDataBuffer = this.nodeDataBuffer, 
-        edgeDataBuffer = this.edgeDataBuffer, 
-        nodeLength: number = 0, edgeLength: number = 0, 
-        coolingFactor = this.coolingFactor, l = 0.01, 
-        iterationCount = this.iterationCount, 
+        nodeDataBuffer = this.nodeDataBuffer,
+        edgeDataBuffer = this.edgeDataBuffer,
+        nodeLength: number = 0, edgeLength: number = 0,
+        coolingFactor = this.coolingFactor, l = 0.01,
+        iterationCount = this.iterationCount,
         threshold = this.threshold,
         iterRef,
         sourceEdgeBuffer, targetEdgeBuffer, frame, edgeList
     ) {
         // coolingFactor = 0.995;
         // l = 0.01;
-        if (nodeLength == 0 || edgeLength == 0) {
+        if (nodeLength === 0 || edgeLength === 0) {
             return;
         }
-        console.log(l);
-        console.log(coolingFactor);
+
         this.coolingFactor = coolingFactor;
         this.nodeDataBuffer = nodeDataBuffer;
         this.edgeDataBuffer = edgeDataBuffer;
@@ -219,58 +224,61 @@ class ForceDirected {
             size: 4 * 4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
         });
-        var bounding = this.device.createBuffer({
+        const bounding = this.device.createBuffer({
             size: 4 * 4,
             usage: GPUBufferUsage.COPY_SRC,
             mappedAtCreation: true,
         });
-        var mapping = bounding.getMappedRange();
+
+        let mapping = bounding.getMappedRange();
         new Int32Array(mapping).set([0, 1000, 0, 1000]);
         bounding.unmap();
         // this.coolingFactor = 2.0;
-        var commandEncoder = this.device.createCommandEncoder();
+        let commandEncoder = this.device.createCommandEncoder();
         commandEncoder.copyBufferToBuffer(bounding, 0, rangeBuffer, 0, 4 * 4);
         this.device.queue.submit([commandEncoder.finish()]);
 
+
         // Set up params (node length, edge length) for creating adjacency matrix
-        var upload = this.device.createBuffer({
+        const upload = this.device.createBuffer({
             size: 4 * 4,
             usage: GPUBufferUsage.COPY_SRC,
             mappedAtCreation: true,
         });
-        var mapping = upload.getMappedRange();
+        mapping = upload.getMappedRange();
         new Uint32Array(mapping).set([nodeLength, edgeLength]);
         new Float32Array(mapping).set([this.coolingFactor, l], 2);
         upload.unmap();
 
-        var commandEncoder = this.device.createCommandEncoder();
+        commandEncoder = this.device.createCommandEncoder();
         commandEncoder.copyBufferToBuffer(upload, 0, this.paramsBuffer, 0, 4 * 4);
 
         this.device.queue.submit([commandEncoder.finish()]);
+
 
         this.forceDataBuffer = this.device.createBuffer({
             size: nodeLength * 2 * 4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
         });
 
-        var quadTreeLength = nodeLength * 12 * 4 * 4;
+        const quadTreeLength = nodeLength * 12 * 4 * 4;
         this.quadTreeBuffer = this.device.createBuffer({
             size: quadTreeLength,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         });
-        var sourceListBuffer = this.device.createBuffer({
+        const sourceListBuffer = this.device.createBuffer({
             size: edgeLength * 2,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         });
-        var targetListBuffer = this.device.createBuffer({
+        const targetListBuffer = this.device.createBuffer({
             size: edgeLength * 2,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         });
-        var edgeInfoBuffer = this.device.createBuffer({
+        const edgeInfoBuffer = this.device.createBuffer({
             size: nodeLength * 4 * 4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         });
-        var createSourceListBindGroup = this.device.createBindGroup({
+        const createSourceListBindGroup = this.device.createBindGroup({
             layout: this.createSourceListPipeline.getBindGroupLayout(0),
             entries: [
                 {
@@ -299,7 +307,7 @@ class ForceDirected {
                 }
             ]
         });
-        var createTargetListBindGroup = this.device.createBindGroup({
+        const createTargetListBindGroup = this.device.createBindGroup({
             layout: this.createTargetListPipeline.getBindGroupLayout(0),
             entries: [
                 {
@@ -329,38 +337,38 @@ class ForceDirected {
             ]
         });
         this.device.queue.submit([commandEncoder.finish()]);
-        var commandEncoder = this.device.createCommandEncoder();
+        commandEncoder = this.device.createCommandEncoder();
         // Run create source and target lists pass
-        var pass = commandEncoder.beginComputePass();
-        pass.setBindGroup(0, createSourceListBindGroup);
-        pass.setPipeline(this.createSourceListPipeline);
-        pass.dispatch(1, 1, 1);
-        pass.setBindGroup(0, createTargetListBindGroup);
-        pass.setPipeline(this.createTargetListPipeline);
-        pass.dispatch(1, 1, 1);
-        pass.endPass();
+        const computePassEncoder = commandEncoder.beginComputePass();
+        computePassEncoder.setBindGroup(0, createSourceListBindGroup);
+        computePassEncoder.setPipeline(this.createSourceListPipeline);
+        computePassEncoder.dispatchWorkgroups(1, 1, 1);
+        computePassEncoder.setBindGroup(0, createTargetListBindGroup);
+        computePassEncoder.setPipeline(this.createTargetListPipeline);
+        computePassEncoder.dispatchWorkgroups(1, 1, 1);
+        computePassEncoder.end();
         const gpuReadBuffer = this.device.createBuffer({
             size: nodeLength * 4 * 4,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
         });
         commandEncoder.copyBufferToBuffer(
-            edgeInfoBuffer /* source buffer */ ,
-            0 /* source offset */ ,
-            gpuReadBuffer /* destination buffer */ ,
-            0 /* destination offset */ ,
+            edgeInfoBuffer /* source buffer */,
+            0 /* source offset */,
+            gpuReadBuffer /* destination buffer */,
+            0 /* destination offset */,
             nodeLength * 4 * 4 /* size */
         );
         this.device.queue.submit([commandEncoder.finish()]);
         // await this.device.queue.onSubmittedWorkDone();
         // await gpuReadBuffer.mapAsync(GPUMapMode.READ);
         // const arrayBuffer = gpuReadBuffer.getMappedRange();
-        // var list = new Uint32Array(arrayBuffer);
+        // const list = new Uint32Array(arrayBuffer);
         // console.log(list);
         // return;
 
-        var iterationTimes : Array<number> = [];
-        var totalStart = performance.now();
-        var applyBindGroup = this.device.createBindGroup({
+        // const iterationTimes: Array<number> = [];
+        const totalStart = performance.now();
+        const applyBindGroup = this.device.createBindGroup({
             layout: this.applyForcesPipeline.getBindGroupLayout(0),
             entries: [
                 {
@@ -389,7 +397,7 @@ class ForceDirected {
                 }
             ],
         });
-        var quadTreeBindGroup = this.device.createBindGroup({
+        const quadTreeBindGroup = this.device.createBindGroup({
             layout: this.createQuadTreePipeline.getBindGroupLayout(0),
             entries: [
                 {
@@ -418,7 +426,7 @@ class ForceDirected {
                 }
             ]
         });
-        var batchBuffer = this.device.createBuffer({
+        const batchBuffer = this.device.createBuffer({
             size: 4,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
         });
@@ -427,16 +435,16 @@ class ForceDirected {
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
         });
         iterationCount = 2000;
-        var numIterations = 0;
-        // var querySet = this.device.createQuerySet({
+        let numIterations = 0;
+        // const querySet = this.device.createQuerySet({
         //     type: "timestamp",
         //     count: 10,
         // });
-        // var queryBuffer = this.device.createBuffer({
+        // const queryBuffer = this.device.createBuffer({
         //     size: 8,
         //     usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC,
         // });
-        // var readQueryBuffer = this.device.createBuffer({
+        // const readQueryBuffer = this.device.createBuffer({
         //     size: 8,
         //     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
         // });
@@ -444,28 +452,28 @@ class ForceDirected {
             numIterations++;
             iterationCount--;
             // Set up params (node length, edge length)
-            var upload = this.device.createBuffer({
+            const upload = this.device.createBuffer({
                 size: 4 * 4,
                 usage: GPUBufferUsage.COPY_SRC,
                 mappedAtCreation: true,
             });
-            var mapping = upload.getMappedRange();
+            const mapping = upload.getMappedRange();
             new Uint32Array(mapping).set([nodeLength, edgeLength]);
             new Float32Array(mapping).set([this.coolingFactor, l], 2);
             upload.unmap();
             //this.device.createQuerySet({})
-            var commandEncoder = this.device.createCommandEncoder();
+            let commandEncoder = this.device.createCommandEncoder();
             //commandEncoder.writeTimestamp();
             commandEncoder.copyBufferToBuffer(upload, 0, this.paramsBuffer, 0, 4 * 4);
             // commandEncoder.copyBufferToBuffer(clearBuffer, 0, this.quadTreeBuffer, 0, quadTreeLength);
             this.device.queue.submit([commandEncoder.finish()]);
-            var commandEncoder = this.device.createCommandEncoder();
+            commandEncoder = this.device.createCommandEncoder();
             // Run create quadtree pass
-            var pass = commandEncoder.beginComputePass();
-            pass.setBindGroup(0, quadTreeBindGroup);
-            pass.setPipeline(this.createQuadTreePipeline);
-            pass.dispatch(1, 1, 1);
-            pass.endPass();
+            let computePassEncoder = commandEncoder.beginComputePass();
+            computePassEncoder.setBindGroup(0, quadTreeBindGroup);
+            computePassEncoder.setPipeline(this.createQuadTreePipeline);
+            computePassEncoder.dispatchWorkgroups(1, 1, 1);
+            computePassEncoder.end();
             // commandEncoder.writeTimestamp(querySet, 0);
             // commandEncoder.resolveQuerySet(querySet, 0, 1, queryBuffer, 0);
             // commandEncoder.copyBufferToBuffer(
@@ -482,20 +490,20 @@ class ForceDirected {
             // let output = new Float32Array(queryArray); 
             // console.log(output);
 
-            var commandEncoder = this.device.createCommandEncoder();
+            commandEncoder = this.device.createCommandEncoder();
             // this.device.queue.submit([commandEncoder.finish()]);
-            // var start : number = performance.now();
+            // const start : number = performance.now();
             // await this.device.queue.onSubmittedWorkDone();
-            // var end : number = performance.now();
+            // const end : number = performance.now();
             // console.log(`quad time: ${end - start}`);
-            // var commandEncoder = this.device.createCommandEncoder();
+            // const commandEncoder = this.device.createCommandEncoder();
 
-            var stackBuffer = this.device.createBuffer({
+            const stackBuffer = this.device.createBuffer({
                 size: nodeLength * 1000 * 4,
                 usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
             });
             // Create BH bindgroup
-            var bindGroup = this.device.createBindGroup({
+            const bindGroup = this.device.createBindGroup({
                 layout: this.computeForcesBHPipeline.getBindGroupLayout(0),
                 entries: [
                     {
@@ -538,7 +546,7 @@ class ForceDirected {
             });
 
             // Run attract forces pass
-            var attractBindGroup = this.device.createBindGroup({
+            const attractBindGroup = this.device.createBindGroup({
                 layout: this.computeAttractiveNewPipeline.getBindGroupLayout(0),
                 entries: [
                     {
@@ -581,60 +589,60 @@ class ForceDirected {
             });
 
             // Run attract forces pass
-            var pass = commandEncoder.beginComputePass();
-            pass.setBindGroup(0, attractBindGroup);
-            pass.setPipeline(this.computeAttractiveNewPipeline);
-            pass.dispatch(nodeLength, 1, 1);      
-            pass.endPass();
+            computePassEncoder = commandEncoder.beginComputePass();
+            computePassEncoder.setBindGroup(0, attractBindGroup);
+            computePassEncoder.setPipeline(this.computeAttractiveNewPipeline);
+            computePassEncoder.dispatchWorkgroups(nodeLength, 1, 1);
+            computePassEncoder.end();
 
             // this.device.queue.submit([commandEncoder.finish()]);
-            // var start : number = performance.now();
+            // const start : number = performance.now();
             // await this.device.queue.onSubmittedWorkDone();
-            // var end : number = performance.now();
+            // const end : number = performance.now();
             // console.log(`attract force time: ${end - start}`)
-            // var commandEncoder = this.device.createCommandEncoder();
+            // const commandEncoder = this.device.createCommandEncoder();
 
             // Run compute forces pass
-            // var pass = commandEncoder.beginComputePass();
+            // const pass = commandEncoder.beginComputePass();
             // pass.setBindGroup(0, bindGroup);
             // pass.setPipeline(this.computeForcesPipeline);
-            // pass.dispatch(nodeLength, 1, 1);
-            // pass.endPass();
+            // pass.dispatchWorkgroups(nodeLength, 1, 1);
+            // pass.end();
 
             // Run compute forces BH pass
-            for (var i = 0; i < 1; i++) {
-                var upload = this.device.createBuffer({
+            for (let i = 0; i < 1; i++) {
+                const upload = this.device.createBuffer({
                     size: 4,
                     usage: GPUBufferUsage.COPY_SRC,
                     mappedAtCreation: true,
                 });
-                var mapping = upload.getMappedRange();
+                const mapping = upload.getMappedRange();
                 new Uint32Array(mapping).set([i]);
                 upload.unmap();
                 commandEncoder.copyBufferToBuffer(upload, 0, batchBuffer, 0, 4);
-                var pass = commandEncoder.beginComputePass();
+                const pass = commandEncoder.beginComputePass();
                 pass.setBindGroup(0, bindGroup);
                 pass.setPipeline(this.computeForcesBHPipeline);
-                pass.dispatch(Math.ceil(nodeLength / 1), 1, 1);
-                pass.endPass();
+                pass.dispatchWorkgroups(Math.ceil(nodeLength / 1), 1, 1);
+                pass.end();
                 this.device.queue.submit([commandEncoder.finish()]);
                 // await this.device.queue.onSubmittedWorkDone();
-                var commandEncoder = this.device.createCommandEncoder();
+                commandEncoder = this.device.createCommandEncoder();
             }
-            // var pass = commandEncoder.beginComputePass();
+            // const pass = commandEncoder.beginComputePass();
             // pass.setBindGroup(0, bindGroup);
             // pass.setPipeline(this.computeForcesBHPipeline);
-            // pass.dispatch(nodeLength, 1, 1);
-            // pass.endPass();
+            // pass.dispatchWorkgroups(nodeLength, 1, 1);
+            // pass.end();
 
             // Testing timing of both passes (comment out when not debugging)
-            // pass.endPass();
+            // pass.end();
             // this.device.queue.submit([commandEncoder.finish()]);
-            // var start : number = performance.now();
+            // const start : number = performance.now();
             // await this.device.queue.onSubmittedWorkDone();
-            // var end : number = performance.now();
+            // const end : number = performance.now();
             // console.log(`compute force time: ${end - start}`)
-            // var commandEncoder = this.device.createCommandEncoder();
+            // const commandEncoder = this.device.createCommandEncoder();
 
             const gpuReadBuffer = this.device.createBuffer({
                 size: 4 * 4,
@@ -650,10 +658,10 @@ class ForceDirected {
             // });
             // Encode commands for copying buffer to buffer.
             commandEncoder.copyBufferToBuffer(
-                this.forceDataBuffer /* source buffer */ ,
-                0 /* source offset */ ,
-                gpuReadBuffer3 /* destination buffer */ ,
-                0 /* destination offset */ ,
+                this.forceDataBuffer /* source buffer */,
+                0 /* source offset */,
+                gpuReadBuffer3 /* destination buffer */,
+                0 /* destination offset */,
                 nodeLength * 2 * 4 /* size */
             );
             // Encode commands for copying buffer to buffer.
@@ -666,24 +674,24 @@ class ForceDirected {
             // );
             commandEncoder.copyBufferToBuffer(bounding, 0, rangeBuffer, 0, 4 * 4);
 
-            var pass = commandEncoder.beginComputePass();
+            computePassEncoder = commandEncoder.beginComputePass();
             //commandEncoder.writeTimestamp();
 
 
             // Run apply forces pass
-            pass.setBindGroup(0, applyBindGroup);
-            pass.setPipeline(this.applyForcesPipeline);
-            pass.dispatch(Math.ceil(nodeLength / 2), 1, 1);
-            pass.endPass();
+            computePassEncoder.setBindGroup(0, applyBindGroup);
+            computePassEncoder.setPipeline(this.applyForcesPipeline);
+            computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / 2), 1, 1);
+            computePassEncoder.end();
 
             commandEncoder.copyBufferToBuffer(
-                rangeBuffer /* source buffer */ ,
-                0 /* source offset */ ,
-                gpuReadBuffer /* destination buffer */ ,
-                0 /* destination offset */ ,
+                rangeBuffer /* source buffer */,
+                0 /* source offset */,
+                gpuReadBuffer /* destination buffer */,
+                0 /* destination offset */,
                 4 * 4 /* size */
             );
-    
+
             commandEncoder.copyBufferToBuffer(
                 this.nodeDataBuffer,
                 0,
@@ -693,9 +701,9 @@ class ForceDirected {
             );
 
             this.device.queue.submit([commandEncoder.finish()]);
-            var start : number = performance.now();
+            const start: number = performance.now();
             await this.device.queue.onSubmittedWorkDone();
-            var end : number = performance.now();
+            const end: number = performance.now();
             console.log(`iteration time ${end - start}`)
             // iterationTimes.push(end - start);
 
@@ -703,20 +711,20 @@ class ForceDirected {
             // Read all of the forces applied.
             // await gpuReadBuffer.mapAsync(GPUMapMode.READ);
             // const arrayBuffer = gpuReadBuffer.getMappedRange();
-            // var output = new Int32Array(arrayBuffer);
+            // const output = new Int32Array(arrayBuffer);
             // console.log(output);
 
             // console.log(output[23]);
             // await gpuReadBuffer3.mapAsync(GPUMapMode.READ);
             // const arrayBuffer3 = gpuReadBuffer3.getMappedRange();
-            // var output3 = new Float32Array(arrayBuffer3);
+            // const output3 = new Float32Array(arrayBuffer3);
             // console.log(output3);
             // await gpuReadBuffer2.mapAsync(GPUMapMode.READ);
             // const arrayBuffer2 = gpuReadBuffer2.getMappedRange();
-            // var output2 = new Uint32Array(arrayBuffer2);
+            // const output2 = new Uint32Array(arrayBuffer2);
             // console.log(output2);
             // for (var m = 0; m < output.length; m += 12) {
-            //     var mass = output[m + 10];
+            //     const mass = output[m + 10];
             //     if (
             //         output2[m + 4] == 1000000 ||
             //         output2[m + 5] == 1000000 ||
@@ -732,16 +740,16 @@ class ForceDirected {
             // }
             stackBuffer.destroy();
             this.coolingFactor = this.coolingFactor * coolingFactor;
-            
+
         }
         await positionReadBuffer.mapAsync(GPUMapMode.READ);
-        let positionArrayBuffer = positionReadBuffer.getMappedRange();
-        let positionList = new Float32Array(positionArrayBuffer);
+        // let positionArrayBuffer = positionReadBuffer.getMappedRange();
+        // let positionList = new Float32Array(positionArrayBuffer);
         await this.device.queue.onSubmittedWorkDone();
 
-        var totalEnd = performance.now();
-        // var iterAvg : number = iterationTimes.reduce(function(a, b) {return a + b}) / iterationTimes.length;
-        var iterAvg = (totalEnd - totalStart) / numIterations;
+        const totalEnd = performance.now();
+        // const iterAvg : number = iterationTimes.reduce(function(a, b) {return a + b}) / iterationTimes.length;
+        const iterAvg = (totalEnd - totalStart) / numIterations;
         iterRef.current!.innerText = `Completed in ${numIterations} iterations with total time ${totalEnd - totalStart} and average iteration time ${iterAvg}`;
         // let d3Format = this.formatToD3Format(
         //     positionList,
@@ -751,7 +759,7 @@ class ForceDirected {
         //   );
         // let formattedNodeList = d3Format.nodeArray;
         // let formattedEdgeList = d3Format.edgeArray;
-    
+
         // console.log(formattedNodeList, formattedEdgeList);
         // const element = document.createElement("a");
         // const textFile = new Blob([JSON.stringify(formattedEdgeList)], {type: 'application/json'});
@@ -770,5 +778,3 @@ class ForceDirected {
         requestAnimationFrame(frame);
     }
 }
-
-export default ForceDirected;

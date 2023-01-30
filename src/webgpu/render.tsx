@@ -1,6 +1,6 @@
 import { Controller } from './ez_canvas_controller';
 import { node_vert, node_frag, edge_vert, edge_frag } from './wgsl';
-import ForceDirected from './force_directed';
+import { ForceDirected } from './force_directed';
 
 class Renderer {
   public uniform2DBuffer : GPUBuffer | null = null;
@@ -45,7 +45,7 @@ class Renderer {
       canvasRef.current.clientWidth * devicePixelRatio,
       canvasRef.current.clientHeight * devicePixelRatio,
     ];
-    const presentationFormat = context.getPreferredFormat(adapter);
+    const presentationFormat: GPUTextureFormat = 'bgra8unorm';
     this.canvasSize = [
       canvasRef.current.width,
       canvasRef.current.height
@@ -55,6 +55,7 @@ class Renderer {
       device,
       format: presentationFormat,
       size: presentationSize,
+      alphaMode: 'opaque',
     });
 
     this.edgeDataBuffer = device.createBuffer({
@@ -70,6 +71,7 @@ class Renderer {
     // setting it to some trivial data so that it won't fail the pipeline before edge data is available
 
     this.edgePipeline = device.createRenderPipeline({
+      layout: 'auto',
       vertex: {
         module: device.createShaderModule({
           code: edge_vert
@@ -110,7 +112,7 @@ class Renderer {
       }
     });
 
-    var nodePositionBuffer = device.createBuffer({
+    const nodePositionBuffer = device.createBuffer({
       size: 6 * 2 * 4,
       usage: GPUBufferUsage.VERTEX,
       mappedAtCreation: true
@@ -124,7 +126,7 @@ class Renderer {
       1, 1,
     ]);
     nodePositionBuffer.unmap();
-    var edgePositionBuffer = device.createBuffer({
+    const edgePositionBuffer = device.createBuffer({
       size: 2 * 2 * 4,
       usage: GPUBufferUsage.VERTEX,
       mappedAtCreation: true
@@ -147,6 +149,7 @@ class Renderer {
     this.nodeDataBuffer.unmap();
 
     this.nodePipeline = device.createRenderPipeline({
+      layout: 'auto',
       vertex: {
         module: device.createShaderModule({
           code: node_vert,
@@ -195,13 +198,13 @@ class Renderer {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     device.queue.writeBuffer(this.viewBoxBuffer, 0, new Float32Array([0, 0, 1, 1]), 0, 4);
-    var translation = [0, 0, 1, 1];
-    var newTranslation = [0, 0, 1, 1];
-    var controller = new Controller();
-    var render = this;
+    let translation = [0, 0, 1, 1];
+    let newTranslation = [0, 0, 1, 1];
+    const controller = new Controller();
+    const render = this;
     controller.mousemove = function (prev, cur, evt) {
-      if (evt.buttons == 1) {
-        var change = [(cur[0] - prev[0]) * (translation[2] - translation[0]) / render.canvasSize![0], (prev[1] - cur[1]) * (translation[3] - translation[1]) / render.canvasSize![1]];
+      if (evt.buttons === 1) {
+        const change = [(cur[0] - prev[0]) * (translation[2] - translation[0]) / render.canvasSize![0], (prev[1] - cur[1]) * (translation[3] - translation[1]) / render.canvasSize![1]];
         newTranslation = [newTranslation[0] - change[0], newTranslation[1] - change[1], newTranslation[2] - change[0], newTranslation[3] - change[1]]
         if (Math.abs(newTranslation[0] - translation[0]) > 0.03 * (translation[2] - translation[0]) || Math.abs(newTranslation[1] - translation[1]) > 0.03 * (translation[3] - translation[1])) {
           translation = newTranslation;
@@ -210,7 +213,7 @@ class Renderer {
       }
     };
     controller.wheel = function (amt) {
-      var change = [amt / 1000, amt / 1000];
+      const change = [amt / 1000, amt / 1000];
       newTranslation = [newTranslation[0] + change[0], newTranslation[1] + change[1], newTranslation[2] - change[0], newTranslation[3] - change[1]];
       if (newTranslation[2] - newTranslation[0] > 0.01 && newTranslation[3] - newTranslation[1] > 0.01) {
         translation = newTranslation;
@@ -269,9 +272,8 @@ class Renderer {
     });
     const view = texture.createView();
 
-    var render = this;
     this.frame = async function frame() {
-        var start = performance.now();
+        // const start = performance.now();
         // Sample is no longer the active page.
         if (!canvasRef.current) return;
 
@@ -282,7 +284,8 @@ class Renderer {
           {
             view,
             resolveTarget: context.getCurrentTexture().createView(),
-            loadValue: { r: 1.0, g: 1.0, b: 1.0, a: 1.0 },
+            loadOp: 'clear' as GPULoadOp,
+            clearValue: { r: 1.0, g: 1.0, b: 1.0, a: 1.0 },
             storeOp: "discard" as GPUStoreOp,
           },
         ],
@@ -301,37 +304,37 @@ class Renderer {
           passEncoder.setBindGroup(0, render.nodeBindGroup!);
           passEncoder.draw(6, render.nodeLength, 0, 0);
         }
-        passEncoder.endPass();
+        passEncoder.end();
   
         device.queue.submit([commandEncoder.finish()]);
         await device.queue.onSubmittedWorkDone();
-        var end = performance.now();
+        // const end = performance.now();
         requestAnimationFrame(frame);
     }
 
-    requestAnimationFrame(this.frame);
+    this.frame();
 
   }
 
   setNodeEdgeData(nodeData : Array<number>, edgeData : Array<number>, sourceEdges : Array<number>, targetEdges : Array<number>) {
     // function randn_bm(mean, sigma) {
-    //   var u = 0, v = 0;
+    //   const u = 0, v = 0;
     //   while(u === 0) u = Math.random(); //Converting [0,1) to (0,1)
     //   while(v === 0) v = Math.random();
-    //   var mag = sigma * Math.sqrt(-2.0 * Math.log(u));
+    //   const mag = sigma * Math.sqrt(-2.0 * Math.log(u));
     //   return mag * Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v ) + mean;
     // }
-    // var N = 100000;
-    // var clusters = 10;
-    // var edgeData : Array<number> = [];
-    // var nodeData : Array<number> = [];
-    // for (var x = 0; x < N; x++) {
+    // const N = 100000;
+    // const clusters = 10;
+    // const edgeData : Array<number> = [];
+    // const nodeData : Array<number> = [];
+    // for (const x = 0; x < N; x++) {
     //   nodeData.push(0.0, 0.0, 0.0, 1.0);
     // } 
-    // for (var i = 0; i < clusters; i++){
-    //   for (var j = 0; j < N * 2; j++) {
-    //     var source = Math.floor(Math.random() * (N / clusters)) + i * (N / clusters);
-    //     var target = Math.floor(Math.random() * (N / clusters)) + i * (N / clusters);
+    // for (const i = 0; i < clusters; i++){
+    //   for (const j = 0; j < N * 2; j++) {
+    //     const source = Math.floor(Math.random() * (N / clusters)) + i * (N / clusters);
+    //     const target = Math.floor(Math.random() * (N / clusters)) + i * (N / clusters);
     //     if (!nodeData[source * 4 + 1]){
     //         nodeData[source * 4 + 1] = Math.random();
     //         nodeData[source * 4 + 2] = Math.random();

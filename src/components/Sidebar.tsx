@@ -4,13 +4,13 @@ import Collapsible from 'react-collapsible';
 import Select from 'react-select';
 function importAll(r) {
     let datasets = {};
-    r.keys().map((item, index) => { datasets[item.replace('./', '').replace('.png', '')] = r(item); });
+    r.keys().forEach((item) => { datasets[item.replace('./', '').replace('.png', '')] = r(item); });
     return datasets;
 }
   
 const datasets = importAll(require.context('../../datasets', false, /\.(json)$/));
 const dataset_list = ['sf_ba6000', 'fe_4elt2.mtx', 'pkustk02.mtx', 'pkustk01.mtx', 'finance256.mtx'];
-console.log(datasets);
+// console.log(datasets);
 
 type SidebarProps = {
   setNodeEdgeData: (nodeData : Array<number>, edgeData : Array<number>, sourceEdges : Array<number>, targetEdges : Array<number>) => void,
@@ -59,34 +59,34 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
     }
 
     loadGraph(graph : Graph) {
-      var nodeData : Array<number> = [];
-      var edgeData : Array<number> = [];
-      var sourceEdges : Array<number> = [];
-      var targetEdges : Array<number> = [];
+      const nodeData : Array<number> = [];
+      const edgeData : Array<number> = [];
+      const sourceEdges : Array<number> = [];
+      const targetEdges : Array<number> = [];
       console.log(graph);
-      for (var i = 0; i < graph.nodes.length; i++) {
+      for (let i = 0; i < graph.nodes.length; i++) {
         if (graph.nodes[i].x) {
           nodeData.push(0.0, graph.nodes[i].x, graph.nodes[i].y, 1.0);
         } else {
           nodeData.push(0.0, Math.random(), Math.random(), 1.0);
         }
       }
-      for (var i = 0; i < graph.edges.length; i++) {
-        var source = graph.edges[i].source;
-        var target = graph.edges[i].target;
+      for (let i = 0; i < graph.edges.length; i++) {
+        const source = graph.edges[i].source;
+        const target = graph.edges[i].target;
         edgeData.push(source, target);
       }
       graph.edges.sort(function(a,b) {return (a.source > b.source) ? 1 : ((b.source > a.source) ? -1 : 0);} );
-      for (var i = 0; i < graph.edges.length; i++) {
-        var source = graph.edges[i].source;
-        var target = graph.edges[i].target;
+      for (let i = 0; i < graph.edges.length; i++) {
+        const source = graph.edges[i].source;
+        const target = graph.edges[i].target;
         sourceEdges.push(source, target);
       }
       console.log(sourceEdges);
       graph.edges.sort(function(a,b) {return (a.target > b.target) ? 1 : ((b.target > a.target) ? -1 : 0);} );
-      for (var i = 0; i < graph.edges.length; i++) {
-        var source = graph.edges[i].source;
-        var target = graph.edges[i].target;
+      for (let i = 0; i < graph.edges.length; i++) {
+        const source = graph.edges[i].source;
+        const target = graph.edges[i].target;
         targetEdges.push(source, target);
       }
       console.log(graph.edges);
