@@ -42,7 +42,7 @@
     "xml-writer": "^1.7.0"
   },
   "scripts": {
-    "predeploy": "npm run build",
+    "pre-deploy": "pnpm run build",
     "deploy": "gh-pages -d build",
     "start": "react-scripts build && serve -s build",
     "start-local": "react-scripts start -p 4000",
@@ -78,5 +78,5 @@
     "@types/webpack-env": "^1.18.0",
     "gh-pages": "^3.2.3"
   },
-  "homepage": "https://harp-lab.github.io/GraphWaGu/"
+  "homepage": "https://quarksb.github.io/GraphWaGu/"
 }
