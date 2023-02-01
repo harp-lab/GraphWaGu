@@ -78,5 +78,5 @@
     "@types/webpack-env": "^1.18.0",
     "gh-pages": "^3.2.3"
   },
-  "homepage": "https://quarksb.github.io/GraphWaGu/"
+  "homepage": "https://harp-lab.github.io/GraphWaGu/"
 }

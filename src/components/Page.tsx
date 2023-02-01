@@ -19,7 +19,7 @@ class Page extends React.Component<{}, PageState> {
             canvasRef: createRef<HTMLCanvasElement | null>(), 
             outCanvasRef: createRef<HTMLCanvasElement | null>(), 
             iterRef: createRef<HTMLLabelElement | null>(),
-            renderer: null, renderTutorial: false, renderAlert: false
+            renderer: null, renderTutorial: true, renderAlert: false
         };
         this.unmountTutorial = this.unmountTutorial.bind(this);
     }
