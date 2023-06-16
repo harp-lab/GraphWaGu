@@ -283,9 +283,8 @@ class Renderer {
         colorAttachments: [
           {
             view,
-            resolveTarget: context.getCurrentTexture().createView(),
+            // resolveTarget: context.getCurrentTexture().createView(),
             loadOp: 'clear' as GPULoadOp,
-            clearValue: { r: 1.0, g: 1.0, b: 1.0, a: 1.0 },
             storeOp: "discard" as GPUStoreOp,
           },
         ],

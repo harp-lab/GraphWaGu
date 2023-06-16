@@ -13,7 +13,7 @@ type PageState = {
     renderTutorial: boolean, renderAlert: boolean
 }
 class Page extends React.Component<{}, PageState> {
-    constructor(props) {
+    constructor(props: {} | Readonly<{}>) {
         super(props);
         this.state = {
             canvasRef: createRef<HTMLCanvasElement | null>(), 

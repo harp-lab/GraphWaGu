@@ -1,27 +1,27 @@
 import React from 'react';
-import {Form, Button} from "react-bootstrap";
+import { Form, Button } from "react-bootstrap";
 import ReactMarkdown from 'react-markdown';
 
 type TutorialProps = {
-    unmount: () => void,
+  unmount: () => void,
 }
 class Tutorial extends React.Component<TutorialProps, {}> {
-    constructor(props) {
-      super(props);
-      this.state = {
-      };
-  
-      this.handleSubmit = this.handleSubmit.bind(this);
-    }
-  
-    handleSubmit(event) {
-      event.preventDefault();
-      this.props.unmount();
-    }
-    
-  
-    render() {
-        const markdown = `
+  constructor(props: TutorialProps | Readonly<TutorialProps>) {
+    super(props);
+    this.state = {
+    };
+
+    this.handleSubmit = this.handleSubmit.bind(this);
+  }
+
+  handleSubmit(event: { preventDefault: () => void; }) {
+    event.preventDefault();
+    this.props.unmount();
+  }
+
+
+  render() {
+    const markdown = `
 # Welcome to GraphWaGu! 
 
 **GraphWaGu** is a graph visualization system that supports force directed layout creation and rendering on the web. **GraphWaGu** was built using the **WebGPU** API to take advantage of GPU power for the web. 
@@ -47,22 +47,22 @@ The file explorer is accessible using the button underneath the datasets selecti
 ### Options
 On the left sidebar, there are options for turning on/off rendering for "Nodes" and "Edges" under "Layers." There are also "Force Directed Options" which include two sliders to control "Ideal Length" and "Cooling Factor." Ideal length will control the spacing between nodes in the final layout created by the force directed algorithm, while the cooling factor determines how many iterations the algorithm will run. I wouldn't recommend changing ideal length, but raising the cooling factor can improve the quality of the output layout at the cost of taking longer to compute.         
         `;
-      return (
-        <div className="fill-window"> 
+    return (
+      <div className="fill-window">
         <Form onSubmit={this.handleSubmit}>
-            {/* <br/>
+          {/* <br/>
             <br/>
             <br/>
             <h1 style={{"fontSize": "5em"}} className="mt-10">
                 Welcome to GraphWaGu!
             </h1> */}
-            <ReactMarkdown className="markdown">{markdown}</ReactMarkdown>
-
-            <Button style={{"width": "50%"}} type="submit" variant="secondary" value="Submit">Continue to GraphWaGu!</ Button>
+          {/*@ts-ignore */}
+          <ReactMarkdown className="markdown">{markdown}</ReactMarkdown>
+          <Button style={{ "width": "50%" }} type="submit" variant="secondary" value="Submit">Continue to GraphWaGu!</ Button>
         </Form>
-        </ div>
-      );
-    }
+      </ div>
+    );
   }
+}
 
 export default Tutorial;

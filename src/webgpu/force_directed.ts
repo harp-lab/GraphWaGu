@@ -1,3 +1,4 @@
+import { RefObject } from 'react';
 import {
     apply_forces,
     create_adjacency_matrix,
@@ -33,7 +34,7 @@ export class ForceDirected {
     public threshold: number = 100;
     public force: number = 1000.0;
 
-    constructor (device: GPUDevice) {
+    constructor(device: GPUDevice) {
         this.device = device;
 
         this.nodeDataBuffer = this.device.createBuffer({
@@ -163,7 +164,7 @@ export class ForceDirected {
         });
     }
 
-    formatToD3Format(positionList, edgeList, nLength, eLength) {
+    formatToD3Format(positionList: number[], edgeList: number[], nLength: number, eLength: number) {
         const nodeArray = new Array(nLength);
         const edgeArray = new Array(eLength / 2);
 
@@ -206,8 +207,11 @@ export class ForceDirected {
         coolingFactor = this.coolingFactor, l = 0.01,
         iterationCount = this.iterationCount,
         threshold = this.threshold,
-        iterRef,
-        sourceEdgeBuffer, targetEdgeBuffer, frame, edgeList
+        iterRef: RefObject<HTMLLabelElement>,
+        sourceEdgeBuffer: GPUBuffer | null,
+        targetEdgeBuffer: GPUBuffer | null,
+        frame: FrameRequestCallback,
+        edgeList: number[]
     ) {
         // coolingFactor = 0.995;
         // l = 0.01;
@@ -278,64 +282,68 @@ export class ForceDirected {
             size: nodeLength * 4 * 4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         });
+
+        let entries: GPUBindGroupEntry[] = [
+            {
+                binding: 0,
+                resource: {
+                    buffer: sourceEdgeBuffer!,
+                }
+            },
+            {
+                binding: 1,
+                resource: {
+                    buffer: edgeInfoBuffer,
+                }
+            },
+            {
+                binding: 2,
+                resource: {
+                    buffer: sourceListBuffer,
+                },
+            },
+            {
+                binding: 3,
+                resource: {
+                    buffer: this.paramsBuffer
+                }
+            }
+        ]
         const createSourceListBindGroup = this.device.createBindGroup({
             layout: this.createSourceListPipeline.getBindGroupLayout(0),
-            entries: [
-                {
-                    binding: 0,
-                    resource: {
-                        buffer: sourceEdgeBuffer,
-                    }
-                },
-                {
-                    binding: 1,
-                    resource: {
-                        buffer: edgeInfoBuffer,
-                    }
-                },
-                {
-                    binding: 2,
-                    resource: {
-                        buffer: sourceListBuffer,
-                    },
-                },
-                {
-                    binding: 3,
-                    resource: {
-                        buffer: this.paramsBuffer
-                    }
-                }
-            ]
+            entries
         });
+        entries = [
+            {
+                binding: 0,
+                resource: {
+                    buffer: targetEdgeBuffer!,
+                }
+            },
+            {
+                binding: 1,
+                resource: {
+                    buffer: edgeInfoBuffer,
+                }
+            },
+            {
+                binding: 2,
+                resource: {
+                    buffer: targetListBuffer,
+                },
+            },
+            {
+                binding: 3,
+                resource: {
+                    buffer: this.paramsBuffer
+                }
+            }
+        ]
+
         const createTargetListBindGroup = this.device.createBindGroup({
             layout: this.createTargetListPipeline.getBindGroupLayout(0),
-            entries: [
-                {
-                    binding: 0,
-                    resource: {
-                        buffer: targetEdgeBuffer,
-                    }
-                },
-                {
-                    binding: 1,
-                    resource: {
-                        buffer: edgeInfoBuffer,
-                    }
-                },
-                {
-                    binding: 2,
-                    resource: {
-                        buffer: targetListBuffer,
-                    },
-                },
-                {
-                    binding: 3,
-                    resource: {
-                        buffer: this.paramsBuffer
-                    }
-                }
-            ]
-        });
+            entries
+        })
         this.device.queue.submit([commandEncoder.finish()]);
         commandEncoder = this.device.createCommandEncoder();
         // Run create source and target lists pass
