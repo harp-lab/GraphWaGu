@@ -2,18 +2,13 @@ import React, { Fragment } from 'react';
 import { Form, Button } from "react-bootstrap";
 import Collapsible from 'react-collapsible';
 import Select from 'react-select';
-import fe_4elt2 from '../../datasets/fe_4elt2.mtx.json';
-import finance256 from '../../datasets/finance256.mtx.json';
-import pkustk01 from '../../datasets/pkustk01.mtx.json';
-import pkustk02 from '../../datasets/pkustk02.mtx.json';
-import sf_ba6000 from '../../datasets/sf_ba6000.json';
 
 const datasets = {
-  'sf_ba6000': sf_ba6000,
-  'fe_4elt2.mtx': fe_4elt2,
-  'finance256.mtx': finance256,
-  'pkustk01.mtx': pkustk01,
-  'pkustk02.mtx': pkustk02
+  'sf_ba6000': import('../../datasets/sf_ba6000.json'),
+  'fe_4elt2.mtx': import('../../datasets/fe_4elt2.mtx.json'),
+  'finance256.mtx': import('../../datasets/finance256.mtx.json'),
+  'pkustk01.mtx': import('../../datasets/pkustk01.mtx.json'),
+  'pkustk02.mtx': import('../../datasets/pkustk02.mtx.json'),
 }
 const dataset_list = ['sf_ba6000', 'fe_4elt2.mtx', 'pkustk02.mtx', 'pkustk01.mtx', 'finance256.mtx'];
 // console.log(datasets);
@@ -69,7 +64,7 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
     const edgeData: Array<number> = [];
     const sourceEdges: Array<number> = [];
     const targetEdges: Array<number> = [];
-    console.log(graph);
+
     for (let i = 0; i < graph.nodes.length; i++) {
       if (graph.nodes[i].x) {
         nodeData.push(0.0, graph.nodes[i].x, graph.nodes[i].y, 1.0);
@@ -82,6 +77,7 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
       const target = graph.edges[i].target;
       edgeData.push(source, target);
     }
+
     graph.edges.sort(function (a, b) { return (a.source > b.source) ? 1 : ((b.source > a.source) ? -1 : 0); });
     for (let i = 0; i < graph.edges.length; i++) {
       const source = graph.edges[i].source;
@@ -102,14 +98,15 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
   readJson(event: React.ChangeEvent<HTMLInputElement>) {
     const files: FileList = event.target.files!;
     const jsonReader = new FileReader();
-    jsonReader.onload = (event) => {
+    jsonReader.onload = () => {
       this.loadGraph(JSON.parse(jsonReader.result as string) as Graph);
     };
     jsonReader.readAsText(files[0]);
   }
 
-  chooseDataset(dataset: keyof typeof datasets) {
-    this.loadGraph(datasets[dataset] as Graph);
+  async chooseDataset(dataset: keyof typeof datasets) {
+    const graph = await datasets[dataset] as unknown as Graph;
+    this.loadGraph(graph);
   }
 
   render() {
@@ -119,15 +116,16 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
           <Form style={{ color: 'white' }} onSubmit={this.handleSubmit}>
             <Form.Group controlId="formFile" className="mt-3 mb-3">
               <Form.Label>Choose from list of datasets...</Form.Label>
-              <Select className='black' placeholder="Choose dataset..." onChange={(e) => this.chooseDataset(e!.value)} options={dataset_list.map((cm) => { return { "label": cm, "value": cm } })}></Select>
+              {/*@ts-ignore */}
+              <Select className='black' placeholder="Choose dataset..." onChange={(e) => this.chooseDataset(e!.value as any)} options={dataset_list.map((cm) => { return { "label": cm, "value": cm } })}></Select>
               <Form.Label>Choose your own JSON file...</Form.Label>
               <Form.Control className="form-control" type="file" multiple onChange={(e) => { this.readJson(e as React.ChangeEvent<HTMLInputElement>) }} />
               <Button className="mt-2" type="submit" variant="secondary" value="Submit">Submit</ Button>
             </Form.Group>
             {/*@ts-ignore */}
             <Collapsible trigger="Layers">
-              <Form.Check defaultChecked={true} onClick={(e) => this.props.toggleNodeLayer()} type="checkbox" label="Node Layer" />
-              <Form.Check defaultChecked={true} onClick={(e) => this.props.toggleEdgeLayer()} type="checkbox" label="Edge Layer" />
+              <Form.Check defaultChecked={true} onClick={() => this.props.toggleNodeLayer()} type="checkbox" label="Node Layer" />
+              <Form.Check defaultChecked={true} onClick={() => this.props.toggleEdgeLayer()} type="checkbox" label="Edge Layer" />
             </Collapsible>
             {/*@ts-ignore */}
             <Collapsible trigger="Force Directed Options">
@@ -137,7 +135,7 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
               <input type="range" defaultValue={0.985} min={0.85} max={0.999} step={0.001} onChange={(e) => this.props.setCoolingFactor(parseFloat(e.target.value))} />
             </Collapsible>
             <br />
-            <Button onClick={(e) => this.props.runForceDirected()}>
+            <Button onClick={() => this.props.runForceDirected()}>
               Run Force Directed Layout
             </Button>
           </Form>

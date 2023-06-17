@@ -7,7 +7,6 @@ import { Form } from 'react-bootstrap';
 
 type PageState = {
     canvasRef: MutableRefObject<HTMLCanvasElement | null>,
-    outCanvasRef: MutableRefObject<HTMLCanvasElement | null>,
     iterRef: MutableRefObject<HTMLLabelElement | null>,
     renderer: Renderer | null,
     renderTutorial: boolean, renderAlert: boolean
@@ -17,9 +16,10 @@ class Page extends React.Component<{}, PageState> {
         super(props);
         this.state = {
             canvasRef: createRef<HTMLCanvasElement | null>(), 
-            outCanvasRef: createRef<HTMLCanvasElement | null>(), 
             iterRef: createRef<HTMLLabelElement | null>(),
-            renderer: null, renderTutorial: true, renderAlert: false
+            renderer: null, 
+            renderTutorial: true, 
+            renderAlert: false
         };
         this.unmountTutorial = this.unmountTutorial.bind(this);
     }
@@ -45,8 +45,8 @@ class Page extends React.Component<{}, PageState> {
             }
         }); 
         this.setState({renderer: new Renderer(
-            adapter, device, this.state.canvasRef, 
-            this.state.outCanvasRef, this.state.iterRef)
+            device, this.state.canvasRef, 
+            this.state.iterRef)
         });
     }
 
@@ -99,7 +99,6 @@ class Page extends React.Component<{}, PageState> {
                     <br/>
                     <Form.Label className={"out"} ref={this.state.iterRef} ></Form.Label>
                     <canvas ref={this.state.canvasRef} width={800} height={800}></canvas>
-                    <canvas hidden={true} ref={this.state.outCanvasRef} width={800} height={800}></canvas>
                 </div> 
                 </div>
             ) 

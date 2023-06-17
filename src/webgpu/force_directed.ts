@@ -1,15 +1,14 @@
 import { RefObject } from 'react';
-import {
-    apply_forces,
-    create_adjacency_matrix,
-    compute_forces,
-    create_quadtree,
-    compute_attract_forces,
-    compute_forcesBH,
-    compute_attractive_new,
-    create_targetlist,
-    create_sourcelist,
-} from './wgsl';
+import apply_forces from '../wgsl/apply_forces.wgsl?raw';
+import create_adjacency_matrix from '../wgsl/create_adjacency_matrix.wgsl?raw';
+import create_quadtree from '../wgsl/create_quadtree.wgsl?raw';
+import create_targetlist from '../wgsl/create_targetlist.wgsl?raw';
+import create_sourcelist from '../wgsl/create_sourcelist.wgsl?raw';
+import compute_attract_forces from '../wgsl/compute_attract_forces.wgsl?raw';
+import compute_forces from '../wgsl/compute_forces.wgsl?raw';
+import compute_forcesBH from '../wgsl/compute_forcesBH.wgsl?raw';
+import compute_attractive_new from '../wgsl/compute_attractive_new.wgsl?raw';
+
 
 export class ForceDirected {
     public paramsBuffer: GPUBuffer;
@@ -211,11 +210,11 @@ export class ForceDirected {
         sourceEdgeBuffer: GPUBuffer | null,
         targetEdgeBuffer: GPUBuffer | null,
         frame: FrameRequestCallback,
-        edgeList: number[]
     ) {
         // coolingFactor = 0.995;
         // l = 0.01;
-        if (nodeLength === 0 || edgeLength === 0) {
+        if (nodeLength === 0 || edgeLength === 0 || nodeDataBuffer === null || edgeDataBuffer === null) {
+            alert("No data to run");
             return;
         }
 
@@ -244,18 +243,18 @@ export class ForceDirected {
 
 
         // Set up params (node length, edge length) for creating adjacency matrix
-        const upload = this.device.createBuffer({
+        const uploadBuffer = this.device.createBuffer({
             size: 4 * 4,
             usage: GPUBufferUsage.COPY_SRC,
             mappedAtCreation: true,
         });
-        mapping = upload.getMappedRange();
+        mapping = uploadBuffer.getMappedRange();
         new Uint32Array(mapping).set([nodeLength, edgeLength]);
         new Float32Array(mapping).set([this.coolingFactor, l], 2);
-        upload.unmap();
+        uploadBuffer.unmap();
 
         commandEncoder = this.device.createCommandEncoder();
-        commandEncoder.copyBufferToBuffer(upload, 0, this.paramsBuffer, 0, 4 * 4);
+        commandEncoder.copyBufferToBuffer(uploadBuffer, 0, this.paramsBuffer, 0, 4 * 4);
 
         this.device.queue.submit([commandEncoder.finish()]);
 
@@ -283,66 +282,64 @@ export class ForceDirected {
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         });
 
-        let entries: GPUBindGroupEntry[] = [
-            {
-                binding: 0,
-                resource: {
-                    buffer: sourceEdgeBuffer!,
-                }
-            },
-            {
-                binding: 1,
-                resource: {
-                    buffer: edgeInfoBuffer,
-                }
-            },
-            {
-                binding: 2,
-                resource: {
-                    buffer: sourceListBuffer,
-                },
-            },
-            {
-                binding: 3,
-                resource: {
-                    buffer: this.paramsBuffer
-                }
-            }
-        ]
         const createSourceListBindGroup = this.device.createBindGroup({
             layout: this.createSourceListPipeline.getBindGroupLayout(0),
-            entries
-        });
-        entries = [
-            {
-                binding: 0,
-                resource: {
-                    buffer: targetEdgeBuffer!,
-                }
-            },
-            {
-                binding: 1,
-                resource: {
-                    buffer: edgeInfoBuffer,
-                }
-            },
-            {
-                binding: 2,
-                resource: {
-                    buffer: targetListBuffer,
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: sourceEdgeBuffer!,
+                    }
                 },
-            },
-            {
-                binding: 3,
-                resource: {
-                    buffer: this.paramsBuffer
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: edgeInfoBuffer,
+                    }
+                },
+                {
+                    binding: 2,
+                    resource: {
+                        buffer: sourceListBuffer,
+                    },
+                },
+                {
+                    binding: 3,
+                    resource: {
+                        buffer: this.paramsBuffer
+                    }
                 }
-            }
-        ]
+            ]
+        });
 
         const createTargetListBindGroup = this.device.createBindGroup({
             layout: this.createTargetListPipeline.getBindGroupLayout(0),
-            entries
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: targetEdgeBuffer!,
+                    }
+                },
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: edgeInfoBuffer,
+                    }
+                },
+                {
+                    binding: 2,
+                    resource: {
+                        buffer: targetListBuffer,
+                    },
+                },
+                {
+                    binding: 3,
+                    resource: {
+                        buffer: this.paramsBuffer
+                    }
+                }
+            ]
         })
         this.device.queue.submit([commandEncoder.finish()]);
         commandEncoder = this.device.createCommandEncoder();
