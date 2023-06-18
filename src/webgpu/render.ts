@@ -44,10 +44,9 @@ class Renderer {
     const context = canvasRef.current.getContext('webgpu')!;
 
     const devicePixelRatio = window.devicePixelRatio || 1;
-    const presentationSize = [
-      canvasRef.current.clientWidth * devicePixelRatio,
-      canvasRef.current.clientHeight * devicePixelRatio,
-    ];
+    
+    canvasRef.current.width = 800 * devicePixelRatio;
+    canvasRef.current.height = 800 * devicePixelRatio;
     const presentationFormat: GPUTextureFormat = navigator.gpu.getPreferredCanvasFormat();
     this.canvasSize = [
       canvasRef.current.width,
@@ -124,7 +123,7 @@ class Renderer {
     const edgePositionArray = new Float32Array([0, 0, 1, 1]);
     const edgePositionBuffer = getBuffer(device, edgePositionArray, GPUBufferUsage.VERTEX);
 
-    const nodeDataArray = new Float32Array([ 0.5, 0.5, 0.5, 0.5 ]);
+    const nodeDataArray = new Float32Array([0.5, 0.5, 0.5, 0.5]);
     this.nodeDataBuffer = getBuffer(device, nodeDataArray, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
 
 
@@ -178,9 +177,9 @@ class Renderer {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     device.queue.writeBuffer(this.viewBoxBuffer, 0, new Float32Array([0, 0, 1, 1]), 0, 4);
-    
+
     this.setController(canvasRef);
-    
+
     this.nodeBindGroup = device.createBindGroup({
       layout: this.nodePipeline.getBindGroupLayout(0),
       entries: [
@@ -222,8 +221,9 @@ class Renderer {
       ],
     });
 
+
     const texture = device.createTexture({
-      size: presentationSize,
+      size: [canvasRef.current.width, canvasRef.current.height],
       sampleCount: 4,
       format: presentationFormat,
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
@@ -355,7 +355,6 @@ class Renderer {
       ],
     });
     this.edgeLength = edgeData.length;
-    console.log('edgeLength:', this.edgeLength);
 
     this.nodeLength = nodeData.length / 4;
     this.sourceEdgeDataBuffer = this.device.createBuffer({

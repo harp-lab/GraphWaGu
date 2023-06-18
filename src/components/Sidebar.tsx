@@ -3,15 +3,24 @@ import { Form, Button } from "react-bootstrap";
 import Collapsible from 'react-collapsible';
 import Select from 'react-select';
 
-const datasets = {
-  'sf_ba6000': import('../../datasets/sf_ba6000.json'),
-  'fe_4elt2.mtx': import('../../datasets/fe_4elt2.mtx.json'),
-  'finance256.mtx': import('../../datasets/finance256.mtx.json'),
-  'pkustk01.mtx': import('../../datasets/pkustk01.mtx.json'),
-  'pkustk02.mtx': import('../../datasets/pkustk02.mtx.json'),
+const basePath = location.hostname === 'localhost' ? '/public/' : '/GraphWaGu/';
+
+async function getJson(fileName: string) {
+  const url = new URL(basePath + fileName, location.href);
+  const response = await fetch(url);
+  return response.json();
 }
+
 const dataset_list = ['sf_ba6000', 'fe_4elt2.mtx', 'pkustk02.mtx', 'pkustk01.mtx', 'finance256.mtx'];
-// console.log(datasets);
+
+const datasets = {
+  'sf_ba6000': getJson('sf_ba6000.json'),
+  'fe_4elt2.mtx': getJson('fe_4elt2.mtx.json'),
+  'pkustk02.mtx': getJson('pkustk02.mtx.json'),
+  'pkustk01.mtx': getJson('pkustk01.mtx.json'),
+  'finance256.mtx': getJson('finance256.mtx.json'),
+}
+
 
 type SidebarProps = {
   setNodeEdgeData: (nodeData: Array<number>, edgeData: Array<number>, sourceEdges: Array<number>, targetEdges: Array<number>) => void,
@@ -105,7 +114,7 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
   }
 
   async chooseDataset(dataset: keyof typeof datasets) {
-    const graph = await datasets[dataset] as unknown as Graph;
+    const graph = (await datasets[dataset]) as unknown as Graph;
     this.loadGraph(graph);
   }
 
