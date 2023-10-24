@@ -61,6 +61,8 @@
 
 .canvas {
   background-color: aliceblue;
+  max-width: 800px;
+  aspect-ratio: 1;
 }
 
 .Collapsible {
