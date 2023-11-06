@@ -409,6 +409,7 @@ class Renderer {
         if (Math.abs(newTranslation[0] - translation[0]) > 0.03 * (translation[2] - translation[0]) || Math.abs(newTranslation[1] - translation[1]) > 0.03 * (translation[3] - translation[1])) {
           translation = newTranslation;
           this.device.queue.writeBuffer(this.viewBoxBuffer!, 0, new Float32Array(translation), 0, 4);
+          requestAnimationFrame(this.frame!);
         }
       }
     };
@@ -418,6 +419,7 @@ class Renderer {
       if (newTranslation[2] - newTranslation[0] > 0.01 && newTranslation[3] - newTranslation[1] > 0.01) {
         translation = newTranslation;
         this.device.queue.writeBuffer(this.viewBoxBuffer!, 0, new Float32Array(translation), 0, 4);
+        requestAnimationFrame(this.frame!);
       } else {
         newTranslation = translation;
       }
