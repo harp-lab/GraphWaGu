@@ -453,6 +453,7 @@ export class ForceDirected {
         //     size: 8,
         //     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
         // });
+        let start, end : number;
         while (iterationCount > 0 && this.coolingFactor > 0.0001 && this.force >= 0) {
             numIterations++;
             iterationCount--;
@@ -496,10 +497,10 @@ export class ForceDirected {
             // console.log(output);
 
             commandEncoder = this.device.createCommandEncoder();
-            // this.device.queue.submit([commandEncoder.finish()]);
-            // const start : number = performance.now();
+            // // this.device.queue.submit([commandEncoder.finish()]);
+            // start = performance.now();
             // await this.device.queue.onSubmittedWorkDone();
-            // const end : number = performance.now();
+            // end = performance.now();
             // console.log(`quad time: ${end - start}`);
             // const commandEncoder = this.device.createCommandEncoder();
 
@@ -601,9 +602,9 @@ export class ForceDirected {
             computePassEncoder.end();
 
             // this.device.queue.submit([commandEncoder.finish()]);
-            // const start : number = performance.now();
+            // start = performance.now();
             // await this.device.queue.onSubmittedWorkDone();
-            // const end : number = performance.now();
+            // end = performance.now();
             // console.log(`attract force time: ${end - start}`)
             // const commandEncoder = this.device.createCommandEncoder();
 
@@ -643,10 +644,10 @@ export class ForceDirected {
             // Testing timing of both passes (comment out when not debugging)
             // pass.end();
             // this.device.queue.submit([commandEncoder.finish()]);
-            // const start : number = performance.now();
+            // start = performance.now();
             // await this.device.queue.onSubmittedWorkDone();
-            // const end : number = performance.now();
-            // console.log(`compute force time: ${end - start}`)
+            // end = performance.now();
+            // console.log(`repulse force time: ${end - start}`)
             // const commandEncoder = this.device.createCommandEncoder();
 
             const gpuReadBuffer = this.device.createBuffer({
@@ -706,9 +707,9 @@ export class ForceDirected {
             );
 
             this.device.queue.submit([commandEncoder.finish()]);
-            const start: number = performance.now();
+            start = performance.now();
             await this.device.queue.onSubmittedWorkDone();
-            const end: number = performance.now();
+            end = performance.now();
             console.log(`iteration time ${end - start}`)
             // iterationTimes.push(end - start);
 
@@ -745,7 +746,7 @@ export class ForceDirected {
             // }
             stackBuffer.destroy();
             this.coolingFactor = this.coolingFactor * coolingFactor;
-
+            requestAnimationFrame(frame);
         }
         await positionReadBuffer.mapAsync(GPUMapMode.READ);
         // let positionArrayBuffer = positionReadBuffer.getMappedRange();

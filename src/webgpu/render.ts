@@ -265,7 +265,7 @@ class Renderer {
       passEncoder.end();
 
       device.queue.submit([commandEncoder.finish()]);
-      requestAnimationFrame(this.frame!);
+      // requestAnimationFrame(this.frame!);
     }
 
     this.frame();
@@ -371,6 +371,7 @@ class Renderer {
     });
     new Uint32Array(this.targetEdgeDataBuffer.getMappedRange()).set(targetEdges);
     this.targetEdgeDataBuffer.unmap();
+    requestAnimationFrame(this.frame!);
   }
 
   setCoolingFactor(value: number) {
