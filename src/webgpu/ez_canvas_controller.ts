@@ -23,12 +23,12 @@ export class Controller {
 
     registerForCanvas(canvas : HTMLCanvasElement)
     {
-        var prevMouse : number[] | null = null;
-        var self = this;
+        let prevMouse : number[] | null = null;
+        const self = this;
         canvas.addEventListener("mousemove", function(evt : MouseEvent) {
             evt.preventDefault();
-            var rect = canvas.getBoundingClientRect();
-            var curMouse = [evt.clientX - rect.left, evt.clientY - rect.top];
+            const rect = canvas.getBoundingClientRect();
+            const curMouse = [evt.clientX - rect.left, evt.clientY - rect.top];
             if (!prevMouse) {
                 prevMouse = [evt.clientX - rect.left, evt.clientY - rect.top];
             } else if (self.mousemove) {
@@ -39,8 +39,8 @@ export class Controller {
 
         canvas.addEventListener("mousedown", function(evt : MouseEvent) {
             evt.preventDefault();
-            var rect = canvas.getBoundingClientRect();
-            var curMouse = [evt.clientX - rect.left, evt.clientY - rect.top];
+            const rect = canvas.getBoundingClientRect();
+            const curMouse = [evt.clientX - rect.left, evt.clientY - rect.top];
             if (self.press) {
                 self.press(curMouse, evt);
             }
