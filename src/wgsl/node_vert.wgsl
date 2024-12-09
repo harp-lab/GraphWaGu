@@ -11,6 +11,7 @@ struct VertexOutput {
     @builtin(position) Position : vec4<f32>,
     @location(0) position: vec2<f32>,
     @location(1) @interpolate(flat) center : vec2<f32>,
+    @location(2) color: vec3<f32>,
 };
 struct Uniforms {
   view_box : vec4<f32>,
@@ -21,6 +22,43 @@ struct Edges {
 
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
 @group(0) @binding(1) var<storage, read> nodes : Nodes;
+@group(0) @binding(2) var<storage, read> morton_codes : array<u32>;
+
+fn u32_to_color(value: u32) -> vec3<f32> {
+    // First convert u32 to f32 in [0,1] range
+    // We need to be careful about precision here
+    // Break the u32 into two parts to maintain precision
+    let upper = f32(value >> 16u);
+    let lower = f32(value & 0xFFFFu);
+    
+    // Combine the parts with appropriate scaling
+    let normalized = (upper * 65536.0 + lower) / 4294967295.0;
+    
+    // Define the color gradient
+    // Here we'll use a simple RGB gradient: blue -> cyan -> green -> yellow -> red
+    let positions = array<f32, 5>(0.0, 0.25, 0.5, 0.75, 1.0);
+    let colors = array<vec3<f32>, 5>(
+        vec3<f32>(0.0, 0.0, 1.0),  // Blue
+        vec3<f32>(0.0, 1.0, 1.0),  // Cyan
+        vec3<f32>(0.0, 1.0, 0.0),  // Green
+        vec3<f32>(1.0, 1.0, 0.0),  // Yellow
+        vec3<f32>(1.0, 0.0, 0.0)   // Red
+    );
+    
+    // Find the segment
+    var i = 0;
+    while i < 4 && normalized > positions[i + 1] {
+        i = i + 1;
+    }
+    
+    // Calculate interpolation factor
+    let t = (normalized - positions[i]) / (positions[i + 1] - positions[i]);
+    
+    // Interpolate between colors
+    let color = mix(colors[i], colors[i + 1], t);
+    
+    return color;
+}
 
 @vertex
 fn main(@builtin(instance_index) index : u32, @location(0) position : vec2<f32>)
@@ -39,5 +77,7 @@ fn main(@builtin(instance_index) index : u32, @location(0) position : vec2<f32>)
     output.position = out_position;
     // flat interpolated position will give bottom right corner, so translate to center
     output.center = node_center;
+    let test = morton_codes[index];
+    output.color = u32_to_color(test);
     return output;
 }

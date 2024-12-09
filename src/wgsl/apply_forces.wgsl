@@ -72,9 +72,9 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
         forces.forces[batch_index * 2u] = 0.0;
         forces.forces[batch_index * 2u + 1u] = 0.0;
         atomicMin(&bounding.x_min, i32(floor(x * 1000.0)));
-        atomicMax(&bounding.x_max, i32(floor(x * 1000.0)));
+        atomicMax(&bounding.x_max, i32(ceil(x * 1000.0)));
         atomicMin(&bounding.y_min, i32(floor(y * 1000.0)));
-        atomicMax(&bounding.y_max, i32(floor(y * 1000.0)));
+        atomicMax(&bounding.y_max, i32(ceil(y * 1000.0)));
 
 
         // var test : f32 = forces.forces[0]; 
