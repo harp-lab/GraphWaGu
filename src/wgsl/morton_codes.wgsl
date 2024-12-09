@@ -21,6 +21,7 @@ struct Range {
 @group(0) @binding(1) var<storage, read_write> morton_codes : array<u32>;
 @group(0) @binding(2) var<uniform> uniforms : Uniforms;
 @group(0) @binding(3) var<storage, read_write> bounding : Range;
+@group(0) @binding(4) var<storage, read_write> morton_indices : array<u32>;
 
 // Spreads bits by inserting 0s between each bit
 fn spread_bits(x: u32) -> u32 {
@@ -58,4 +59,5 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     
     // Store result
     morton_codes[idx] = morton;
+    morton_indices[idx] = idx;
 }

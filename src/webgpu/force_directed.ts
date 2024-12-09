@@ -9,8 +9,10 @@ import compute_forces from '../wgsl/compute_forces.wgsl?raw';
 import compute_forcesBH from '../wgsl/compute_forcesBH.wgsl?raw';
 import compute_attractive_new from '../wgsl/compute_attractive_new.wgsl?raw';
 import morton_codes from '../wgsl/morton_codes.wgsl?raw';
+import { GPUSorter } from './sort';
 
 export class ForceDirected {
+    public sorter: GPUSorter;
     public paramsBuffer: GPUBuffer;
     public nodeDataBuffer: GPUBuffer;
     public edgeDataBuffer: GPUBuffer;
@@ -37,6 +39,7 @@ export class ForceDirected {
 
     constructor(device: GPUDevice) {
         this.device = device;
+        this.sorter = new GPUSorter(this.device, 32);
 
         this.nodeDataBuffer = this.device.createBuffer({
             size: 16,
@@ -235,7 +238,6 @@ export class ForceDirected {
             alert("No data to run");
             return;
         }
-
         this.coolingFactor = coolingFactor;
         this.nodeDataBuffer = nodeDataBuffer;
         this.mortonCodeBuffer = mortonCodeBuffer;
@@ -259,7 +261,8 @@ export class ForceDirected {
         let commandEncoder = this.device.createCommandEncoder();
         commandEncoder.copyBufferToBuffer(bounding, 0, rangeBuffer, 0, 4 * 4);
         this.device.queue.submit([commandEncoder.finish()]);
-
+    
+        const sortBuffers = this.sorter.createSortBuffers(nodeLength);
 
         // Set up params (node length, edge length) for creating adjacency matrix
         const uploadBuffer = this.device.createBuffer({
@@ -276,7 +279,6 @@ export class ForceDirected {
         commandEncoder.copyBufferToBuffer(uploadBuffer, 0, this.paramsBuffer, 0, 4 * 4);
 
         this.device.queue.submit([commandEncoder.finish()]);
-
 
         this.forceDataBuffer = this.device.createBuffer({
             size: nodeLength * 2 * 4,
@@ -475,7 +477,14 @@ export class ForceDirected {
                     resource: {
                         buffer: rangeBuffer,
                     }
-                }
+                },
+                // Sort values buffer filled with indices
+                {
+                    binding: 4,
+                    resource: {
+                        buffer: sortBuffers.values,
+                    }
+                },
             ]
         });
         const batchBuffer = this.device.createBuffer({
@@ -529,6 +538,7 @@ export class ForceDirected {
             computePassEncoder.setPipeline(this.mortonCodePipeline);
             computePassEncoder.dispatchWorkgroups(nodeLength, 1, 1);
             computePassEncoder.end();
+            commandEncoder.copyBufferToBuffer(this.mortonCodeBuffer, 0, sortBuffers.keys, 0, this.mortonCodeBuffer.size);
             this.device.queue.submit([commandEncoder.finish()]);
             await this.device.queue.onSubmittedWorkDone();
             end = performance.now();
@@ -549,6 +559,30 @@ export class ForceDirected {
             //     var debugValsf = new Uint32Array(dbgBuffer.getMappedRange());
             //     console.log(debugValsf);
             // }
+
+            start = performance.now();
+            const sortEncoder = this.device.createCommandEncoder();
+            this.sorter.sort(sortEncoder, this.device.queue, sortBuffers);
+            this.device.queue.submit([sortEncoder.finish()]);
+            await this.device.queue.onSubmittedWorkDone();
+            end = performance.now();
+            console.log(`Sort took ${end - start} ms`);
+            {
+                var dbgBuffer = this.device.createBuffer({
+                    size: sortBuffers.keys.size,
+                    usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+                });
+
+                commandEncoder = this.device.createCommandEncoder();
+                commandEncoder.copyBufferToBuffer(sortBuffers.keys, 0, dbgBuffer, 0, dbgBuffer.size);
+                this.device.queue.submit([commandEncoder.finish()]);
+                await this.device.queue.onSubmittedWorkDone();
+
+                await dbgBuffer.mapAsync(GPUMapMode.READ);
+
+                var debugValsf = new Uint32Array(dbgBuffer.getMappedRange());
+                console.log(debugValsf);
+            }
 
             start = performance.now();
             commandEncoder = this.device.createCommandEncoder();
