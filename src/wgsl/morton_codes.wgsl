@@ -22,7 +22,7 @@ struct TreeNode {
     CoM : vec2<f32>,
     mass : f32,
     test : f32,
-    pointers : vec2<u32>,
+    pointers : vec4<u32>,
     morton_code : u32,
     level : u32
 };
@@ -121,7 +121,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     tree[idx + 1u] = TreeNode(
         morton_to_rectangle(morton, 16),
         vec2<f32>(node.x, node.y),
-        1.0, 0.0, vec2<u32>(0u),
+        1.0, 0.0, vec4<u32>(0u),
         morton, 16u
     );
 }

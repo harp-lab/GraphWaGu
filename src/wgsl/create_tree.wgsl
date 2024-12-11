@@ -26,7 +26,7 @@ struct TreeNode {
     CoM : vec2<f32>,
     mass : f32,
     test : u32,
-    pointers : vec2<u32>,
+    pointers : vec4<u32>,
     morton_code : u32,
     level : u32
 };
@@ -111,12 +111,12 @@ fn morton_to_rectangle(morton: u32, level: u32) -> vec4<f32> {
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     let step = tree_info.step;
-    var idx = global_id.x * 2;
+    var idx = global_id.x * 4;
     var start = f32(uniforms.nodes_length);
     var end = uniforms.nodes_length;
     for (var i = 0u; i < step; i++) {
         idx += u32(start);
-        start = ceil(start / 2);
+        start = ceil(start / 4);
         end += u32(start);
     }
     if (idx >= end) {
@@ -124,29 +124,65 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     }
     var pointer1 = 0u;
     var pointer2 = 0u;
+    var pointer3 = 0u;
+    var pointer4 = 0u;
     if (step == 0u) {
         pointer1 = indices[idx];
         pointer2 = indices[idx + 1];
+        pointer3 = indices[idx + 2];
+        pointer4 = indices[idx + 3];
     } else {
         pointer1 = idx;
         pointer2 = idx + 1;
+        pointer3 = idx + 2;
+        pointer4 = idx + 3;
     }
     let node1 = tree[pointer1 + 1];
+    let node2 = tree[pointer2 + 1];
+    let node3 = tree[pointer3 + 1];
+    let node4 = tree[pointer4 + 1];
+    let morton1 = node1.morton_code;
+    let morton2 = node2.morton_code;
+    let morton3 = node3.morton_code;
+    let morton4 = node4.morton_code;
     if (idx == end - 1) {
         // Just write the node out without merging with anything
         tree[end + global_id.x + 1] = node1;
         return;
-    }    
-    let node2 = tree[pointer2 + 1];
-    let morton1 = node1.morton_code;
-    let morton2 = node2.morton_code;
-    let level = min(find_morton_split_level(morton1, morton2), min(node1.level, node2.level));
+    }
+    if (idx == end - 2) {
+        let level = min(find_morton_split_level(morton1, morton2), min(node1.level, node2.level));
+        tree[end + global_id.x + 1] = TreeNode(
+            morton_to_rectangle(morton1, level),
+            (node1.mass * node1.CoM + node2.mass * node2.CoM) / (node1.mass + node2.mass),
+            node1.mass + node2.mass, 
+            morton2, 
+            vec4<u32>(pointer1 + 1, pointer2 + 1, 0, 0),
+            morton1, level
+        );
+        return;
+    }
+    if (idx == end - 3) {
+        let level = min(min(find_morton_split_level(morton3, morton2), min(find_morton_split_level(morton1, morton2), min(node1.level, node2.level))), node3.level);
+        tree[end + global_id.x + 1] = TreeNode(
+            morton_to_rectangle(morton1, level),
+            (node1.mass * node1.CoM + node2.mass * node2.CoM + node3.mass * node3.CoM) / (node1.mass + node2.mass + node3.mass),
+            node1.mass + node2.mass + node3.mass, 
+            morton2, 
+            vec4<u32>(pointer1 + 1, pointer2 + 1, pointer3 + 1, 0),
+            morton1, level
+        );
+        return;
+    }
+    let level12 = min(find_morton_split_level(morton1, morton2), min(node1.level, node2.level));
+    let level34 = min(find_morton_split_level(morton3, morton4), min(node3.level, node4.level));
+    let level = min(find_morton_split_level(morton2, morton3), min(level12, level34));
     tree[end + global_id.x + 1] = TreeNode(
         morton_to_rectangle(morton1, level),
-        (node1.mass * node1.CoM + node2.mass * node2.CoM) / (node1.mass + node2.mass),
-        node1.mass + node2.mass, 
+        (node1.mass * node1.CoM + node2.mass * node2.CoM + node3.mass * node3.CoM + node4.mass * node4.CoM) / (node1.mass + node2.mass + node3.mass + node4.mass),
+        node1.mass + node2.mass + node3.mass + node4.mass, 
         morton2, 
-        vec2<u32>(pointer1 + 1, pointer2 + 1),
+        vec4<u32>(pointer1 + 1, pointer2 + 1, pointer3 + 1, pointer4 + 1),
         morton1, level
     );
 }

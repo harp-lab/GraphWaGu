@@ -309,7 +309,7 @@ export class ForceDirected {
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         });
         const treeBuffer = this.device.createBuffer({
-            size: Math.ceil(nodeLength * 2.1) * 12 * 4,
+            size: Math.ceil(nodeLength * 2.1) * 16 * 4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         });
 
@@ -626,7 +626,7 @@ export class ForceDirected {
             // }
             let startTot = performance.now();
             var maxIndex = nodeLength;
-            for (var i = 0; i < Math.log2(nodeLength); i++) {
+            for (var i = 0; i < Math.log(nodeLength) / Math.log(4); i++) {
                 start = performance.now();
                 this.device.queue.writeBuffer(
                     treeInfoBuffer,
@@ -639,14 +639,14 @@ export class ForceDirected {
                 computePassEncoder = commandEncoder.beginComputePass();
                 computePassEncoder.setBindGroup(0, createTreeBindGroup);
                 computePassEncoder.setPipeline(this.createTreePipeline);
-                computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / (64 * 2**(i+1))), 1, 1);
+                computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / (64 * 4**(i+1))), 1, 1);
                 computePassEncoder.end();
                 this.device.queue.submit([commandEncoder.finish()]);
                 await this.device.queue.onSubmittedWorkDone();
-                maxIndex += Math.ceil(nodeLength / 2**(i+1))
+                maxIndex += Math.ceil(nodeLength / 4**(i+1))
                 end = performance.now();
-                // console.log(`Create Tree iter ${i} took ${end - start}ms`)
-                // console.log(maxIndex * i);
+                console.log(`Create Tree iter ${i} took ${end - start}ms`)
+                console.log(maxIndex);
             }
             this.device.queue.writeBuffer(
                 treeInfoBuffer,
