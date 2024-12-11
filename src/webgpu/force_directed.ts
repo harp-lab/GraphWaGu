@@ -372,7 +372,6 @@ export class ForceDirected {
         // return;
 
         // const iterationTimes: Array<number> = [];
-        const totalStart = performance.now();
         const applyBindGroup = this.device.createBindGroup({
             layout: this.applyForcesPipeline.getBindGroupLayout(0),
             entries: [
@@ -439,7 +438,7 @@ export class ForceDirected {
             size: nodeLength * 4 * 4,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
         });
-        iterationCount = 2000;
+        iterationCount = 1000;
         let numIterations = 0;
         // const querySet = this.device.createQuerySet({
         //     type: "timestamp",
@@ -454,7 +453,10 @@ export class ForceDirected {
         //     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
         // });
         let start, end : number;
+        let totalSum = 0;
+        let treeSum = 0;
         while (iterationCount > 0 && this.coolingFactor > 0.0001 && this.force >= 0) {
+            const totalStart = performance.now();
             numIterations++;
             iterationCount--;
             // Set up params (node length, edge length)
@@ -473,6 +475,8 @@ export class ForceDirected {
             commandEncoder.copyBufferToBuffer(upload, 0, this.paramsBuffer, 0, 4 * 4);
             // commandEncoder.copyBufferToBuffer(clearBuffer, 0, this.quadTreeBuffer, 0, quadTreeLength);
             this.device.queue.submit([commandEncoder.finish()]);
+            await this.device.queue.onSubmittedWorkDone();
+            start = performance.now();
             commandEncoder = this.device.createCommandEncoder();
             // Run create quadtree pass
             let computePassEncoder = commandEncoder.beginComputePass();
@@ -490,6 +494,9 @@ export class ForceDirected {
             //     8 /* size */
             // );           
             this.device.queue.submit([commandEncoder.finish()]);
+            await this.device.queue.onSubmittedWorkDone();
+            end = performance.now();
+            treeSum += end - start;
 
             // await readQueryBuffer.mapAsync(GPUMapMode.READ);
             // let queryArray = readQueryBuffer.getMappedRange();
@@ -707,10 +714,7 @@ export class ForceDirected {
             );
 
             this.device.queue.submit([commandEncoder.finish()]);
-            start = performance.now();
             await this.device.queue.onSubmittedWorkDone();
-            end = performance.now();
-            console.log(`iteration time ${end - start}`)
             // iterationTimes.push(end - start);
 
             // this.maxForceResultBuffer.unmap();
@@ -745,7 +749,11 @@ export class ForceDirected {
             //     break;
             // }
             stackBuffer.destroy();
-            this.coolingFactor = this.coolingFactor * coolingFactor;
+            this.coolingFactor = this.coolingFactor * 0.995;
+            const totalEnd = performance.now();
+            console.log(`Total frame time ${totalEnd - totalStart}`);
+            totalSum += totalEnd - totalStart;
+            iterRef.current!.innerText = `Iteration ${numIterations}`;
             requestAnimationFrame(frame);
         }
         await positionReadBuffer.mapAsync(GPUMapMode.READ);
@@ -753,10 +761,8 @@ export class ForceDirected {
         // let positionList = new Float32Array(positionArrayBuffer);
         await this.device.queue.onSubmittedWorkDone();
 
-        const totalEnd = performance.now();
         // const iterAvg : number = iterationTimes.reduce(function(a, b) {return a + b}) / iterationTimes.length;
-        const iterAvg = (totalEnd - totalStart) / numIterations;
-        iterRef.current!.innerText = `Completed in ${numIterations} iterations with total time ${totalEnd - totalStart} and average iteration time ${iterAvg}`;
+        iterRef.current!.innerText = `Completed in ${numIterations} iterations with average iteration time ${totalSum / numIterations} and average tree construction time ${treeSum / numIterations}`;
         // let d3Format = this.formatToD3Format(
         //     positionList,
         //     edgeList,
