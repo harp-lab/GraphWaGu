@@ -562,7 +562,7 @@ export class ForceDirected {
             let computePassEncoder = commandEncoder.beginComputePass();
             computePassEncoder.setBindGroup(0, mortonCodeBindGroup);
             computePassEncoder.setPipeline(this.mortonCodePipeline);
-            computePassEncoder.dispatchWorkgroups(nodeLength, 1, 1);
+            computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / 64), 1, 1);
             computePassEncoder.end();
             commandEncoder.copyBufferToBuffer(this.mortonCodeBuffer, 0, sortBuffers.keys, 0, this.mortonCodeBuffer.size);
             this.device.queue.submit([commandEncoder.finish()]);
@@ -639,7 +639,7 @@ export class ForceDirected {
                 computePassEncoder = commandEncoder.beginComputePass();
                 computePassEncoder.setBindGroup(0, createTreeBindGroup);
                 computePassEncoder.setPipeline(this.createTreePipeline);
-                computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / 2**(i+1)), 1, 1);
+                computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / (64 * 2**(i+1))), 1, 1);
                 computePassEncoder.end();
                 this.device.queue.submit([commandEncoder.finish()]);
                 await this.device.queue.onSubmittedWorkDone();
@@ -786,7 +786,7 @@ export class ForceDirected {
             computePassEncoder = commandEncoder.beginComputePass();
             computePassEncoder.setBindGroup(0, attractBindGroup);
             computePassEncoder.setPipeline(this.computeAttractiveNewPipeline);
-            computePassEncoder.dispatchWorkgroups(nodeLength, 1, 1);
+            computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / 64), 1, 1);
             computePassEncoder.end();
 
             this.device.queue.submit([commandEncoder.finish()]);
@@ -795,45 +795,16 @@ export class ForceDirected {
             end = performance.now();
             console.log(`attract force time: ${end - start}`)
 
-            // Run compute forces pass
-            commandEncoder = this.device.createCommandEncoder();
-            // const pass = commandEncoder.beginComputePass();
-            // pass.setBindGroup(0, bindGroup);
-            // pass.setPipeline(this.computeForcesPipeline);
-            // pass.dispatchWorkgroups(nodeLength, 1, 1);
-            // pass.end();
-
             // Run compute forces BH pass
             start = performance.now();
-            for (let i = 0; i < 1; i++) {
-                const upload = this.device.createBuffer({
-                    size: 4,
-                    usage: GPUBufferUsage.COPY_SRC,
-                    mappedAtCreation: true,
-                });
-                const mapping = upload.getMappedRange();
-                new Uint32Array(mapping).set([i]);
-                upload.unmap();
-                commandEncoder.copyBufferToBuffer(upload, 0, batchBuffer, 0, 4);
-                const pass = commandEncoder.beginComputePass();
-                pass.setBindGroup(0, computeForcesBHBindGroup);
-                pass.setPipeline(this.computeForcesBHPipeline);
-                pass.dispatchWorkgroups(Math.ceil(nodeLength / 1), 1, 1);
-                pass.end();
-                this.device.queue.submit([commandEncoder.finish()]);
-                // await this.device.queue.onSubmittedWorkDone();
-                commandEncoder = this.device.createCommandEncoder();
-            }
-            // const pass = commandEncoder.beginComputePass();
-            // pass.setBindGroup(0, bindGroup);
-            // pass.setPipeline(this.computeForcesBHPipeline);
-            // pass.dispatchWorkgroups(nodeLength, 1, 1);
-            // pass.end();
+            commandEncoder = this.device.createCommandEncoder();
 
-            // Testing timing of both passes (comment out when not debugging)
-            // pass.end();
-            // this.device.queue.submit([commandEncoder.finish()]);
-            // start = performance.now();
+            const pass = commandEncoder.beginComputePass();
+            pass.setBindGroup(0, computeForcesBHBindGroup);
+            pass.setPipeline(this.computeForcesBHPipeline);
+            pass.dispatchWorkgroups(Math.ceil(nodeLength / 64), 1, 1);
+            pass.end();
+            this.device.queue.submit([commandEncoder.finish()]);
             await this.device.queue.onSubmittedWorkDone();
             end = performance.now();
             console.log(`repulse force time: ${end - start}`)
@@ -881,7 +852,7 @@ export class ForceDirected {
             // Run apply forces pass
             computePassEncoder.setBindGroup(0, applyBindGroup);
             computePassEncoder.setPipeline(this.applyForcesPipeline);
-            computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / 2), 1, 1);
+            computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / (2 * 64)), 1, 1);
             computePassEncoder.end();
 
             commandEncoder.copyBufferToBuffer(

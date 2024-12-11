@@ -41,10 +41,13 @@ struct TreeNode {
 @group(0) @binding(4) var<uniform> tree_info : TreeInfo;
 @group(0) @binding(5) var<storage, read> tree : array<TreeNode>;
 
-@compute @workgroup_size(1, 1, 1)
+@compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     let l : f32 = uniforms.ideal_length;
     var index : u32 = global_id.x;
+    if (index >= uniforms.nodes_length) {
+        return;
+    }
     let node = nodes[index];
     var theta : f32 = 0.8;
     var r_force : vec2<f32> = vec2<f32>(0.0, 0.0);

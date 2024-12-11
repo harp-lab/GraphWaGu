@@ -108,7 +108,7 @@ fn morton_to_rectangle(morton: u32, level: u32) -> vec4<f32> {
     return vec4<f32>(world_x, world_y, world_w, world_h);
 }
 
-@compute @workgroup_size(1, 1, 1)
+@compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     let step = tree_info.step;
     var idx = global_id.x * 2;
