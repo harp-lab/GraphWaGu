@@ -9,6 +9,7 @@ import compute_forces from '../wgsl/compute_forces.wgsl?raw';
 import compute_forcesBH from '../wgsl/compute_forcesBH.wgsl?raw';
 import compute_attractive_new from '../wgsl/compute_attractive_new.wgsl?raw';
 import morton_codes from '../wgsl/morton_codes.wgsl?raw';
+import create_tree from '../wgsl/create_tree.wgsl?raw';
 import { GPUSorter } from './sort';
 
 export class ForceDirected {
@@ -24,6 +25,7 @@ export class ForceDirected {
     public device: GPUDevice;
     public createMatrixPipeline: GPUComputePipeline;
     public createQuadTreePipeline: GPUComputePipeline;
+    public createTreePipeline: GPUComputePipeline;
     public createSourceListPipeline: GPUComputePipeline;
     public createTargetListPipeline: GPUComputePipeline;
     public computeAttractiveNewPipeline: GPUComputePipeline;
@@ -91,6 +93,16 @@ export class ForceDirected {
             compute: {
                 module: device.createShaderModule({
                     code: create_quadtree
+                }),
+                entryPoint: "main",
+            },
+        });
+
+        this.createTreePipeline = device.createComputePipeline({
+            layout: 'auto',
+            compute: {
+                module: device.createShaderModule({
+                    code: create_tree
                 }),
                 entryPoint: "main",
             },
@@ -280,6 +292,12 @@ export class ForceDirected {
 
         this.device.queue.submit([commandEncoder.finish()]);
 
+        // Create a buffer to store the params, output, and min/max
+        const treeInfoBuffer = this.device.createBuffer({
+            size: 1 * 4,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+
         this.forceDataBuffer = this.device.createBuffer({
             size: nodeLength * 2 * 4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
@@ -299,6 +317,10 @@ export class ForceDirected {
         });
         const edgeInfoBuffer = this.device.createBuffer({
             size: nodeLength * 4 * 4,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+        });
+        const treeBuffer = this.device.createBuffer({
+            size: Math.ceil(nodeLength * 2.1) * 12 * 4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         });
 
@@ -451,6 +473,42 @@ export class ForceDirected {
                 }
             ]
         });
+        const createTreeBindGroup = this.device.createBindGroup({
+            layout: this.createTreePipeline.getBindGroupLayout(0),
+            entries: [
+                // Sort values buffer filled with indices
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: sortBuffers.values,
+                    }
+                },  
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: this.paramsBuffer,
+                    }
+                },
+                {
+                    binding: 2,
+                    resource: {
+                        buffer: treeInfoBuffer,
+                    }
+                },
+                {
+                    binding: 3,
+                    resource: {
+                        buffer: rangeBuffer,
+                    }
+                },
+                {
+                    binding: 4,
+                    resource: {
+                        buffer: treeBuffer,
+                    }
+                },
+            ]
+        });
         const mortonCodeBindGroup = this.device.createBindGroup({
             layout: this.mortonCodePipeline.getBindGroupLayout(0),
             entries: [
@@ -485,6 +543,12 @@ export class ForceDirected {
                         buffer: sortBuffers.values,
                     }
                 },
+                {
+                    binding: 5,
+                    resource: {
+                        buffer: treeBuffer,
+                    }
+                },
             ]
         });
         const batchBuffer = this.device.createBuffer({
@@ -495,7 +559,7 @@ export class ForceDirected {
             size: nodeLength * 4 * 4,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
         });
-        iterationCount = 2000;
+        iterationCount = 1;
         let numIterations = 0;
         // const querySet = this.device.createQuerySet({
         //     type: "timestamp",
@@ -543,22 +607,37 @@ export class ForceDirected {
             await this.device.queue.onSubmittedWorkDone();
             end = performance.now();
             console.log(`Morton codes took ${end - start}ms`)
-            // {
-            //     var dbgBuffer = this.device.createBuffer({
-            //         size: this.mortonCodeBuffer.size,
-            //         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-            //     });
+            {
+                var dbgBuffer = this.device.createBuffer({
+                    size: treeBuffer.size,
+                    usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+                });
 
-            //     commandEncoder = this.device.createCommandEncoder();
-            //     commandEncoder.copyBufferToBuffer(this.mortonCodeBuffer, 0, dbgBuffer, 0, dbgBuffer.size);
-            //     this.device.queue.submit([commandEncoder.finish()]);
-            //     await this.device.queue.onSubmittedWorkDone();
+                commandEncoder = this.device.createCommandEncoder();
+                commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBuffer, 0, dbgBuffer.size);
+                this.device.queue.submit([commandEncoder.finish()]);
+                await this.device.queue.onSubmittedWorkDone();
 
-            //     await dbgBuffer.mapAsync(GPUMapMode.READ);
+                await dbgBuffer.mapAsync(GPUMapMode.READ);
 
-            //     var debugValsf = new Uint32Array(dbgBuffer.getMappedRange());
-            //     console.log(debugValsf);
-            // }
+                var debugValsf = new Float32Array(dbgBuffer.getMappedRange());
+                console.log(debugValsf);
+
+                var dbgBufferu = this.device.createBuffer({
+                    size: treeBuffer.size,
+                    usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+                });
+
+                commandEncoder = this.device.createCommandEncoder();
+                commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBufferu, 0, dbgBuffer.size);
+                this.device.queue.submit([commandEncoder.finish()]);
+                await this.device.queue.onSubmittedWorkDone();
+
+                await dbgBufferu.mapAsync(GPUMapMode.READ);
+
+                var debugValsu = new Uint32Array(dbgBufferu.getMappedRange());
+                console.log(debugValsu);
+            }
 
             start = performance.now();
             const sortEncoder = this.device.createCommandEncoder();
@@ -580,8 +659,62 @@ export class ForceDirected {
 
                 await dbgBuffer.mapAsync(GPUMapMode.READ);
 
-                var debugValsf = new Uint32Array(dbgBuffer.getMappedRange());
+                var debugValsu = new Uint32Array(dbgBuffer.getMappedRange());
+                console.log(debugValsu);
+            }
+            let startTot = performance.now();
+            for (var i = 0; i < Math.log2(nodeLength); i++) {
+                start = performance.now();
+                this.device.queue.writeBuffer(
+                    treeInfoBuffer,
+                    0,
+                    new Uint32Array([i]),
+                    0,
+                    1
+                );
+                commandEncoder = this.device.createCommandEncoder();
+                computePassEncoder = commandEncoder.beginComputePass();
+                computePassEncoder.setBindGroup(0, createTreeBindGroup);
+                computePassEncoder.setPipeline(this.createTreePipeline);
+                computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / 2**(i+1)), 1, 1);
+                computePassEncoder.end();
+                this.device.queue.submit([commandEncoder.finish()]);
+                await this.device.queue.onSubmittedWorkDone();
+                end = performance.now();
+                console.log(`Create Tree iter ${i} took ${end - start}ms`)
+            }
+            let endTot = performance.now();
+            console.log(`Create Tree took ${endTot - startTot}ms`)
+            {
+                var dbgBuffer = this.device.createBuffer({
+                    size: treeBuffer.size,
+                    usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+                });
+
+                commandEncoder = this.device.createCommandEncoder();
+                commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBuffer, 0, dbgBuffer.size);
+                this.device.queue.submit([commandEncoder.finish()]);
+                await this.device.queue.onSubmittedWorkDone();
+
+                await dbgBuffer.mapAsync(GPUMapMode.READ);
+
+                var debugValsf = new Float32Array(dbgBuffer.getMappedRange());
                 console.log(debugValsf);
+
+                var dbgBufferu = this.device.createBuffer({
+                    size: treeBuffer.size,
+                    usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+                });
+
+                commandEncoder = this.device.createCommandEncoder();
+                commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBufferu, 0, dbgBuffer.size);
+                this.device.queue.submit([commandEncoder.finish()]);
+                await this.device.queue.onSubmittedWorkDone();
+
+                await dbgBufferu.mapAsync(GPUMapMode.READ);
+
+                var debugValsu = new Uint32Array(dbgBufferu.getMappedRange());
+                console.log(debugValsu);
             }
 
             start = performance.now();
