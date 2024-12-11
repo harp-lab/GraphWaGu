@@ -522,6 +522,7 @@ export class ForceDirected {
         iterationCount = 2000;
         let numIterations = 0;
         var totalTime = 0;
+        var totalTree = 0;
         // const querySet = this.device.createQuerySet({
         //     type: "timestamp",
         //     count: 10,
@@ -656,6 +657,7 @@ export class ForceDirected {
                 1
             );
             let endTot = performance.now();
+            totalTree += endTot - startTot;
             console.log(`Create Tree took ${endTot - startTot}ms`)
             // {
             //     var dbgBuffer = this.device.createBuffer({
@@ -921,7 +923,7 @@ export class ForceDirected {
         // await this.device.queue.onSubmittedWorkDone();
 
         // const iterAvg : number = iterationTimes.reduce(function(a, b) {return a + b}) / iterationTimes.length;
-        iterRef.current!.innerText = `Completed in ${numIterations} iterations with average iteration time ${totalTime / numIterations}`;
+        iterRef.current!.innerText = `Completed in ${numIterations} iterations with average iteration time ${totalTime / numIterations} and tree time ${totalTree / numIterations}`;
         // let d3Format = this.formatToD3Format(
         //     positionList,
         //     edgeList,
