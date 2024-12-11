@@ -12,6 +12,7 @@ struct Uniforms {
 };
 struct TreeInfo {
     step : u32,
+    max_index : u32
 };
 struct Range {
     x_min : i32,
@@ -130,22 +131,22 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
         pointer1 = idx;
         pointer2 = idx + 1;
     }
-    let node1 = tree[pointer1];
+    let node1 = tree[pointer1 + 1];
     if (idx == end - 1) {
         // Just write the node out without merging with anything
-        tree[end + global_id.x] = node1;
+        tree[end + global_id.x + 1] = node1;
         return;
     }    
-    let node2 = tree[pointer2];
+    let node2 = tree[pointer2 + 1];
     let morton1 = node1.morton_code;
     let morton2 = node2.morton_code;
     let level = min(find_morton_split_level(morton1, morton2), min(node1.level, node2.level));
-    tree[end + global_id.x] = TreeNode(
+    tree[end + global_id.x + 1] = TreeNode(
         morton_to_rectangle(morton1, level),
         (node1.mass * node1.CoM + node2.mass * node2.CoM) / (node1.mass + node2.mass),
         node1.mass + node2.mass, 
         morton2, 
-        vec2<u32>(indices[idx], indices[idx + 1]),
+        vec2<u32>(pointer1 + 1, pointer2 + 1),
         morton1, level
     );
 }

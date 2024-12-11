@@ -24,7 +24,6 @@ export class ForceDirected {
     public coolingFactor: number = 0.985;
     public device: GPUDevice;
     public createMatrixPipeline: GPUComputePipeline;
-    public createQuadTreePipeline: GPUComputePipeline;
     public createTreePipeline: GPUComputePipeline;
     public createSourceListPipeline: GPUComputePipeline;
     public createTargetListPipeline: GPUComputePipeline;
@@ -83,16 +82,6 @@ export class ForceDirected {
             compute: {
                 module: device.createShaderModule({
                     code: create_adjacency_matrix
-                }),
-                entryPoint: "main",
-            },
-        });
-
-        this.createQuadTreePipeline = device.createComputePipeline({
-            layout: 'auto',
-            compute: {
-                module: device.createShaderModule({
-                    code: create_quadtree
                 }),
                 entryPoint: "main",
             },
@@ -294,7 +283,7 @@ export class ForceDirected {
 
         // Create a buffer to store the params, output, and min/max
         const treeInfoBuffer = this.device.createBuffer({
-            size: 1 * 4,
+            size: 2 * 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
 
@@ -414,7 +403,6 @@ export class ForceDirected {
         // return;
 
         // const iterationTimes: Array<number> = [];
-        const totalStart = performance.now();
         const applyBindGroup = this.device.createBindGroup({
             layout: this.applyForcesPipeline.getBindGroupLayout(0),
             entries: [
@@ -444,35 +432,7 @@ export class ForceDirected {
                 }
             ],
         });
-        const quadTreeBindGroup = this.device.createBindGroup({
-            layout: this.createQuadTreePipeline.getBindGroupLayout(0),
-            entries: [
-                {
-                    binding: 0,
-                    resource: {
-                        buffer: this.nodeDataBuffer,
-                    }
-                },
-                {
-                    binding: 1,
-                    resource: {
-                        buffer: this.quadTreeBuffer,
-                    }
-                },
-                {
-                    binding: 2,
-                    resource: {
-                        buffer: this.paramsBuffer,
-                    }
-                },
-                {
-                    binding: 3,
-                    resource: {
-                        buffer: rangeBuffer,
-                    }
-                }
-            ]
-        });
+
         const createTreeBindGroup = this.device.createBindGroup({
             layout: this.createTreePipeline.getBindGroupLayout(0),
             entries: [
@@ -559,8 +519,9 @@ export class ForceDirected {
             size: nodeLength * 4 * 4,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
         });
-        iterationCount = 1;
+        iterationCount = 2000;
         let numIterations = 0;
+        var totalTime = 0;
         // const querySet = this.device.createQuerySet({
         //     type: "timestamp",
         //     count: 10,
@@ -575,6 +536,7 @@ export class ForceDirected {
         // });
         let start, end : number;
         while (iterationCount > 0 && this.coolingFactor > 0.0001 && this.force >= 0) {
+            const totalStart = performance.now();
             numIterations++;
             iterationCount--;
             // Set up params (node length, edge length)
@@ -607,37 +569,37 @@ export class ForceDirected {
             await this.device.queue.onSubmittedWorkDone();
             end = performance.now();
             console.log(`Morton codes took ${end - start}ms`)
-            {
-                var dbgBuffer = this.device.createBuffer({
-                    size: treeBuffer.size,
-                    usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-                });
+            // {
+            //     var dbgBuffer = this.device.createBuffer({
+            //         size: treeBuffer.size,
+            //         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+            //     });
 
-                commandEncoder = this.device.createCommandEncoder();
-                commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBuffer, 0, dbgBuffer.size);
-                this.device.queue.submit([commandEncoder.finish()]);
-                await this.device.queue.onSubmittedWorkDone();
+            //     commandEncoder = this.device.createCommandEncoder();
+            //     commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBuffer, 0, dbgBuffer.size);
+            //     this.device.queue.submit([commandEncoder.finish()]);
+            //     await this.device.queue.onSubmittedWorkDone();
 
-                await dbgBuffer.mapAsync(GPUMapMode.READ);
+            //     await dbgBuffer.mapAsync(GPUMapMode.READ);
 
-                var debugValsf = new Float32Array(dbgBuffer.getMappedRange());
-                console.log(debugValsf);
+            //     var debugValsf = new Float32Array(dbgBuffer.getMappedRange());
+            //     console.log(debugValsf);
 
-                var dbgBufferu = this.device.createBuffer({
-                    size: treeBuffer.size,
-                    usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-                });
+            //     var dbgBufferu = this.device.createBuffer({
+            //         size: treeBuffer.size,
+            //         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+            //     });
 
-                commandEncoder = this.device.createCommandEncoder();
-                commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBufferu, 0, dbgBuffer.size);
-                this.device.queue.submit([commandEncoder.finish()]);
-                await this.device.queue.onSubmittedWorkDone();
+            //     commandEncoder = this.device.createCommandEncoder();
+            //     commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBufferu, 0, dbgBuffer.size);
+            //     this.device.queue.submit([commandEncoder.finish()]);
+            //     await this.device.queue.onSubmittedWorkDone();
 
-                await dbgBufferu.mapAsync(GPUMapMode.READ);
+            //     await dbgBufferu.mapAsync(GPUMapMode.READ);
 
-                var debugValsu = new Uint32Array(dbgBufferu.getMappedRange());
-                console.log(debugValsu);
-            }
+            //     var debugValsu = new Uint32Array(dbgBufferu.getMappedRange());
+            //     console.log(debugValsu);
+            // }
 
             start = performance.now();
             const sortEncoder = this.device.createCommandEncoder();
@@ -646,23 +608,24 @@ export class ForceDirected {
             await this.device.queue.onSubmittedWorkDone();
             end = performance.now();
             console.log(`Sort took ${end - start} ms`);
-            {
-                var dbgBuffer = this.device.createBuffer({
-                    size: sortBuffers.keys.size,
-                    usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-                });
+            // {
+            //     var dbgBuffer = this.device.createBuffer({
+            //         size: sortBuffers.keys.size,
+            //         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+            //     });
 
-                commandEncoder = this.device.createCommandEncoder();
-                commandEncoder.copyBufferToBuffer(sortBuffers.keys, 0, dbgBuffer, 0, dbgBuffer.size);
-                this.device.queue.submit([commandEncoder.finish()]);
-                await this.device.queue.onSubmittedWorkDone();
+            //     commandEncoder = this.device.createCommandEncoder();
+            //     commandEncoder.copyBufferToBuffer(sortBuffers.keys, 0, dbgBuffer, 0, dbgBuffer.size);
+            //     this.device.queue.submit([commandEncoder.finish()]);
+            //     await this.device.queue.onSubmittedWorkDone();
 
-                await dbgBuffer.mapAsync(GPUMapMode.READ);
+            //     await dbgBuffer.mapAsync(GPUMapMode.READ);
 
-                var debugValsu = new Uint32Array(dbgBuffer.getMappedRange());
-                console.log(debugValsu);
-            }
+            //     var debugValsu = new Uint32Array(dbgBuffer.getMappedRange());
+            //     console.log(debugValsu);
+            // }
             let startTot = performance.now();
+            var maxIndex = nodeLength;
             for (var i = 0; i < Math.log2(nodeLength); i++) {
                 start = performance.now();
                 this.device.queue.writeBuffer(
@@ -680,69 +643,51 @@ export class ForceDirected {
                 computePassEncoder.end();
                 this.device.queue.submit([commandEncoder.finish()]);
                 await this.device.queue.onSubmittedWorkDone();
+                maxIndex += Math.ceil(nodeLength / 2**(i+1))
                 end = performance.now();
-                console.log(`Create Tree iter ${i} took ${end - start}ms`)
+                // console.log(`Create Tree iter ${i} took ${end - start}ms`)
+                // console.log(maxIndex * i);
             }
+            this.device.queue.writeBuffer(
+                treeInfoBuffer,
+                4,
+                new Uint32Array([maxIndex]),
+                0,
+                1
+            );
             let endTot = performance.now();
             console.log(`Create Tree took ${endTot - startTot}ms`)
-            {
-                var dbgBuffer = this.device.createBuffer({
-                    size: treeBuffer.size,
-                    usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-                });
+            // {
+            //     var dbgBuffer = this.device.createBuffer({
+            //         size: treeBuffer.size,
+            //         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+            //     });
 
-                commandEncoder = this.device.createCommandEncoder();
-                commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBuffer, 0, dbgBuffer.size);
-                this.device.queue.submit([commandEncoder.finish()]);
-                await this.device.queue.onSubmittedWorkDone();
+            //     commandEncoder = this.device.createCommandEncoder();
+            //     commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBuffer, 0, dbgBuffer.size);
+            //     this.device.queue.submit([commandEncoder.finish()]);
+            //     await this.device.queue.onSubmittedWorkDone();
 
-                await dbgBuffer.mapAsync(GPUMapMode.READ);
+            //     await dbgBuffer.mapAsync(GPUMapMode.READ);
 
-                var debugValsf = new Float32Array(dbgBuffer.getMappedRange());
-                console.log(debugValsf);
+            //     var debugValsf = new Float32Array(dbgBuffer.getMappedRange());
+            //     console.log(debugValsf);
 
-                var dbgBufferu = this.device.createBuffer({
-                    size: treeBuffer.size,
-                    usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-                });
+            //     var dbgBufferu = this.device.createBuffer({
+            //         size: treeBuffer.size,
+            //         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+            //     });
 
-                commandEncoder = this.device.createCommandEncoder();
-                commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBufferu, 0, dbgBuffer.size);
-                this.device.queue.submit([commandEncoder.finish()]);
-                await this.device.queue.onSubmittedWorkDone();
+            //     commandEncoder = this.device.createCommandEncoder();
+            //     commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBufferu, 0, dbgBuffer.size);
+            //     this.device.queue.submit([commandEncoder.finish()]);
+            //     await this.device.queue.onSubmittedWorkDone();
 
-                await dbgBufferu.mapAsync(GPUMapMode.READ);
+            //     await dbgBufferu.mapAsync(GPUMapMode.READ);
 
-                var debugValsu = new Uint32Array(dbgBufferu.getMappedRange());
-                console.log(debugValsu);
-            }
-
-            start = performance.now();
-            commandEncoder = this.device.createCommandEncoder();
-            // Run create quadtree pass
-            computePassEncoder = commandEncoder.beginComputePass();
-            computePassEncoder.setBindGroup(0, quadTreeBindGroup);
-            computePassEncoder.setPipeline(this.createQuadTreePipeline);
-            computePassEncoder.dispatchWorkgroups(1, 1, 1);
-            computePassEncoder.end();
-            // commandEncoder.writeTimestamp(querySet, 0);
-            // commandEncoder.resolveQuerySet(querySet, 0, 1, queryBuffer, 0);
-            // commandEncoder.copyBufferToBuffer(
-            //     queryBuffer /* source buffer */ ,
-            //     0 /* source offset */ ,
-            //     readQueryBuffer /* destination buffer */ ,
-            //     0 /* destination offset */ ,
-            //     8 /* size */
-            // );           
-            this.device.queue.submit([commandEncoder.finish()]);
-            await this.device.queue.onSubmittedWorkDone();
-            end = performance.now();
-            console.log(`Create quadtree took ${end - start}ms`)
-
-            // await readQueryBuffer.mapAsync(GPUMapMode.READ);
-            // let queryArray = readQueryBuffer.getMappedRange();
-            // let output = new Float32Array(queryArray); 
-            // console.log(output);
+            //     var debugValsu = new Uint32Array(dbgBufferu.getMappedRange());
+            //     console.log(debugValsu);
+            // }
 
             commandEncoder = this.device.createCommandEncoder();
             // const commandEncoder = this.device.createCommandEncoder();
@@ -752,7 +697,7 @@ export class ForceDirected {
                 usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
             });
             // Create BH bindgroup
-            const bindGroup = this.device.createBindGroup({
+            const computeForcesBHBindGroup = this.device.createBindGroup({
                 layout: this.computeForcesBHPipeline.getBindGroupLayout(0),
                 entries: [
                     {
@@ -776,19 +721,19 @@ export class ForceDirected {
                     {
                         binding: 3,
                         resource: {
-                            buffer: this.quadTreeBuffer,
+                            buffer: stackBuffer,
                         },
                     },
                     {
                         binding: 4,
                         resource: {
-                            buffer: stackBuffer,
-                        },
+                            buffer: treeInfoBuffer
+                        }
                     },
                     {
                         binding: 5,
                         resource: {
-                            buffer: batchBuffer
+                            buffer: treeBuffer
                         }
                     }
                 ],
@@ -871,7 +816,7 @@ export class ForceDirected {
                 upload.unmap();
                 commandEncoder.copyBufferToBuffer(upload, 0, batchBuffer, 0, 4);
                 const pass = commandEncoder.beginComputePass();
-                pass.setBindGroup(0, bindGroup);
+                pass.setBindGroup(0, computeForcesBHBindGroup);
                 pass.setPipeline(this.computeForcesBHPipeline);
                 pass.dispatchWorkgroups(Math.ceil(nodeLength / 1), 1, 1);
                 pass.end();
@@ -892,36 +837,40 @@ export class ForceDirected {
             await this.device.queue.onSubmittedWorkDone();
             end = performance.now();
             console.log(`repulse force time: ${end - start}`)
-            commandEncoder = this.device.createCommandEncoder();
 
-            const gpuReadBuffer = this.device.createBuffer({
-                size: 4 * 4,
-                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
-            });
-            const gpuReadBuffer3 = this.device.createBuffer({
-                size: nodeLength * 2 * 4,
-                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
-            });
-            // const gpuReadBuffer2 = this.device.createBuffer({
-            //     size: nodeLength * 200 * 4,
-            //     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
-            // });
-            // Encode commands for copying buffer to buffer.
-            commandEncoder.copyBufferToBuffer(
-                this.forceDataBuffer /* source buffer */,
-                0 /* source offset */,
-                gpuReadBuffer3 /* destination buffer */,
-                0 /* destination offset */,
-                nodeLength * 2 * 4 /* size */
-            );
-            // Encode commands for copying buffer to buffer.
-            // commandEncoder.copyBufferToBuffer(
-            //     stackBuffer /* source buffer */ ,
-            //     0 /* source offset */ ,
-            //     gpuReadBuffer2 /* destination buffer */ ,
-            //     0 /* destination offset */ ,
-            //     nodeLength * 200 * 4 /* size */
-            // );
+            // {
+            //     var dbgBuffer = this.device.createBuffer({
+            //         size: treeBuffer.size,
+            //         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+            //     });
+
+            //     commandEncoder = this.device.createCommandEncoder();
+            //     commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBuffer, 0, dbgBuffer.size);
+            //     this.device.queue.submit([commandEncoder.finish()]);
+            //     await this.device.queue.onSubmittedWorkDone();
+
+            //     await dbgBuffer.mapAsync(GPUMapMode.READ);
+
+            //     var debugValsf = new Float32Array(dbgBuffer.getMappedRange());
+            //     console.log(debugValsf);
+
+            //     var dbgBufferu = this.device.createBuffer({
+            //         size: treeBuffer.size,
+            //         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+            //     });
+
+            //     commandEncoder = this.device.createCommandEncoder();
+            //     commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBufferu, 0, dbgBuffer.size);
+            //     this.device.queue.submit([commandEncoder.finish()]);
+            //     await this.device.queue.onSubmittedWorkDone();
+
+            //     await dbgBufferu.mapAsync(GPUMapMode.READ);
+
+            //     var debugValsu = new Uint32Array(dbgBufferu.getMappedRange());
+            //     console.log(debugValsu);
+            // }
+
+            commandEncoder = this.device.createCommandEncoder();
             commandEncoder.copyBufferToBuffer(bounding, 0, rangeBuffer, 0, 4 * 4);
 
             start = performance.now();
@@ -988,6 +937,9 @@ export class ForceDirected {
             // if (output[11] > 0) {
             //     break;
             // }
+            const totalEnd = performance.now();
+            console.log(`Total frame time: ${totalEnd - totalStart}`);
+            totalTime += totalEnd - totalStart;
             stackBuffer.destroy();
             this.coolingFactor = this.coolingFactor * coolingFactor;
             requestAnimationFrame(frame);
@@ -997,10 +949,8 @@ export class ForceDirected {
         // let positionList = new Float32Array(positionArrayBuffer);
         // await this.device.queue.onSubmittedWorkDone();
 
-        const totalEnd = performance.now();
         // const iterAvg : number = iterationTimes.reduce(function(a, b) {return a + b}) / iterationTimes.length;
-        const iterAvg = (totalEnd - totalStart) / numIterations;
-        iterRef.current!.innerText = `Completed in ${numIterations} iterations with total time ${totalEnd - totalStart} and average iteration time ${iterAvg}`;
+        iterRef.current!.innerText = `Completed in ${numIterations} iterations with average iteration time ${totalTime / numIterations}`;
         // let d3Format = this.formatToD3Format(
         //     positionList,
         //     edgeList,

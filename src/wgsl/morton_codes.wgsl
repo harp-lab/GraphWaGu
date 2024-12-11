@@ -118,7 +118,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     // Store result
     morton_codes[idx] = morton;
     morton_indices[idx] = idx;
-    tree[idx] = TreeNode(
+    tree[idx + 1u] = TreeNode(
         morton_to_rectangle(morton, 16),
         vec2<f32>(node.x, node.y),
         1.0, 0.0, vec2<u32>(0u),
