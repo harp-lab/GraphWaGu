@@ -914,7 +914,7 @@ export class ForceDirected {
             console.log(`Total frame time: ${totalEnd - totalStart}`);
             totalTime += totalEnd - totalStart;
             stackBuffer.destroy();
-            this.coolingFactor = this.coolingFactor * 0.99;
+            this.coolingFactor = this.coolingFactor * 0.995;
             // if ((numIterations % 50 == 0) && (numIterations < 1400)) {
             //     this.coolingFactor = 0.8;
             // }
