@@ -50,26 +50,28 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
             // atomicStore(&bounding.y_min, i32(batch_index));
             forces.forces[batch_index * 2u + 1u] = 0.0;    
         }
-        var x : f32 = min(high, max(low, nodes.nodes[batch_index].x + forces.forces[batch_index * 2u]));
-        var y : f32 = min(high, max(low, nodes.nodes[batch_index].y + forces.forces[batch_index * 2u + 1u]));
+        // var x : f32 = min(high, max(low, nodes.nodes[batch_index].x + forces.forces[batch_index * 2u]));
+        // var y : f32 = min(high, max(low, nodes.nodes[batch_index].y + forces.forces[batch_index * 2u + 1u]));
+        var x : f32 = nodes.nodes[batch_index].x + forces.forces[batch_index * 2u];
+        var y : f32 = nodes.nodes[batch_index].y + forces.forces[batch_index * 2u + 1u];
 
         // var centering : vec2<f32> = normalize(vec2<f32>(0.5, 0.5) - vec2<f32>(x, y));
         // var dist : f32 = distance(vec2<f32>(0.5, 0.5), vec2<f32>(x, y));
         // x = x + centering.x * (0.1 * uniforms.cooling_factor * dist);
         // y = y + centering.y * (0.1 * uniforms.cooling_factor * dist);
         // Randomize position slightly to prevent exact duplicates after clamping
-        if (x == high) {
-            x = x - f32(batch_index) / 500000.0; 
-        } 
-        if (y == high) {
-            y = y - f32(batch_index) / 500000.0; 
-        }
-        if (x == low) {
-            x = x + f32(batch_index) / 500000.0; 
-        }
-        if (y == low) {
-            y = y + f32(batch_index) / 500000.0; 
-        }
+        // if (x == high) {
+        //     x = x - f32(batch_index) / 500000.0; 
+        // } 
+        // if (y == high) {
+        //     y = y - f32(batch_index) / 500000.0; 
+        // }
+        // if (x == low) {
+        //     x = x + f32(batch_index) / 500000.0; 
+        // }
+        // if (y == low) {
+        //     y = y + f32(batch_index) / 500000.0; 
+        // }
         nodes.nodes[batch_index].x = x;
         nodes.nodes[batch_index].y = y;
         forces.forces[batch_index * 2u] = 0.0;
