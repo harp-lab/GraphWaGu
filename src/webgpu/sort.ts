@@ -63,9 +63,9 @@ export class GPUSorter {
         let histogram_sg_size = subgroupSize;
         let rs_sweep_0_size = Math.floor(RS_RADIX_SIZE / histogram_sg_size);
         let rs_sweep_1_size = Math.floor(rs_sweep_0_size / histogram_sg_size);
-        let rs_sweep_2_size = Math.floor(rs_sweep_1_size / histogram_sg_size);
-        let rs_sweep_size = rs_sweep_0_size + rs_sweep_1_size + rs_sweep_2_size;
-        let _rs_smem_phase_1 = RS_RADIX_SIZE + RS_RADIX_SIZE + rs_sweep_size;
+        // let rs_sweep_2_size = Math.floor(rs_sweep_1_size / histogram_sg_size);
+        // let rs_sweep_size = rs_sweep_0_size + rs_sweep_1_size + rs_sweep_2_size;
+        // let _rs_smem_phase_1 = RS_RADIX_SIZE + RS_RADIX_SIZE + rs_sweep_size;
         let rs_smem_phase_2 = RS_RADIX_SIZE + RS_SCATTER_BLOCK_ROWS * SCATTER_WG_SIZE;
         // rs_smem_phase_2 will always be larger, so always use phase2
         let rs_mem_dwords = rs_smem_phase_2;

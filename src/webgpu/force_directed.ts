@@ -1,7 +1,7 @@
 import { RefObject } from 'react';
 import apply_forces from '../wgsl/apply_forces.wgsl?raw';
 import create_adjacency_matrix from '../wgsl/create_adjacency_matrix.wgsl?raw';
-import create_quadtree from '../wgsl/create_quadtree.wgsl?raw';
+// import create_quadtree from '../wgsl/create_quadtree.wgsl?raw';
 import create_targetlist from '../wgsl/create_targetlist.wgsl?raw';
 import create_sourcelist from '../wgsl/create_sourcelist.wgsl?raw';
 import compute_attract_forces from '../wgsl/compute_attract_forces.wgsl?raw';
@@ -511,10 +511,10 @@ export class ForceDirected {
                 },
             ]
         });
-        const batchBuffer = this.device.createBuffer({
-            size: 4,
-            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
-        });
+        // const batchBuffer = this.device.createBuffer({
+        //     size: 4,
+        //     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
+        // });
         let positionReadBuffer = this.device.createBuffer({
             size: nodeLength * 4 * 4,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
@@ -536,8 +536,8 @@ export class ForceDirected {
         //     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
         // });
         let start, end : number;
-        let totalSum = 0;
-        let treeSum = 0;
+        // let totalSum = 0;
+        // let treeSum = 0;
         while (iterationCount > 0 && this.coolingFactor > 0.0001 && this.force >= 0) {
             const totalStart = performance.now();
             numIterations++;
