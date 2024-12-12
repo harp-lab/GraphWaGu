@@ -567,7 +567,7 @@ export class ForceDirected {
             computePassEncoder.end();
             commandEncoder.copyBufferToBuffer(this.mortonCodeBuffer, 0, sortBuffers.keys, 0, this.mortonCodeBuffer.size);
             this.device.queue.submit([commandEncoder.finish()]);
-            await this.device.queue.onSubmittedWorkDone();
+            // await this.device.queue.onSubmittedWorkDone();
             end = performance.now();
             console.log(`Morton codes took ${end - start}ms`)
             // {
@@ -627,6 +627,7 @@ export class ForceDirected {
             // }
             let startTot = performance.now();
             var maxIndex = nodeLength;
+            commandEncoder = this.device.createCommandEncoder();
             for (var i = 0; i < Math.log(nodeLength) / Math.log(4); i++) {
                 start = performance.now();
                 this.device.queue.writeBuffer(
@@ -643,7 +644,7 @@ export class ForceDirected {
                 computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / (64 * 4**(i+1))), 1, 1);
                 computePassEncoder.end();
                 this.device.queue.submit([commandEncoder.finish()]);
-                await this.device.queue.onSubmittedWorkDone();
+                // await this.device.queue.onSubmittedWorkDone();
                 maxIndex += Math.ceil(nodeLength / 4**(i+1))
                 end = performance.now();
                 console.log(`Create Tree iter ${i} took ${end - start}ms`)
@@ -656,6 +657,8 @@ export class ForceDirected {
                 0,
                 1
             );
+            // this.device.queue.submit([commandEncoder.finish()]);
+            await this.device.queue.onSubmittedWorkDone();
             let endTot = performance.now();
             totalTree += endTot - startTot;
             console.log(`Create Tree took ${endTot - startTot}ms`)
@@ -793,7 +796,7 @@ export class ForceDirected {
 
             this.device.queue.submit([commandEncoder.finish()]);
             start = performance.now();
-            await this.device.queue.onSubmittedWorkDone();
+            // await this.device.queue.onSubmittedWorkDone();
             end = performance.now();
             console.log(`attract force time: ${end - start}`)
 
@@ -807,7 +810,7 @@ export class ForceDirected {
             pass.dispatchWorkgroups(Math.ceil(nodeLength / 64), 1, 1);
             pass.end();
             this.device.queue.submit([commandEncoder.finish()]);
-            await this.device.queue.onSubmittedWorkDone();
+            // await this.device.queue.onSubmittedWorkDone();
             end = performance.now();
             console.log(`repulse force time: ${end - start}`)
 
