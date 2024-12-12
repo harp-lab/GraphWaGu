@@ -31,6 +31,7 @@ class Renderer {
   public iterRef: React.RefObject<HTMLLabelElement>;
   public frame: (() => void) | undefined;
   public edgeList: Array<number> = [];
+  public mortonCodeBuffer: GPUBuffer | null = null;
 
   constructor(
     device: GPUDevice,
@@ -125,6 +126,14 @@ class Renderer {
 
     const nodeDataArray = new Float32Array([0.5, 0.5, 0.5, 0.5]);
     this.nodeDataBuffer = getBuffer(device, nodeDataArray, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+    this.mortonCodeBuffer = device.createBuffer({
+      size: 4,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+      mappedAtCreation: true
+    });
+    let mortonCode = [0];
+    new Float32Array(this.mortonCodeBuffer.getMappedRange()).set(mortonCode);
+    this.mortonCodeBuffer.unmap();
 
 
     this.nodePipeline = device.createRenderPipeline({
@@ -194,6 +203,12 @@ class Renderer {
           resource: {
             buffer: this.nodeDataBuffer,
           }
+        },
+        {
+          binding: 2,
+          resource: {
+            buffer: this.mortonCodeBuffer,
+          }
         }
       ],
     });
@@ -230,7 +245,7 @@ class Renderer {
     });
     const view = texture.createView();
 
-    this.frame = () => {
+    this.frame = async () => {
       // const start = performance.now();
       // Sample is no longer the active page.
       if (!canvasRef.current) return;
@@ -265,6 +280,22 @@ class Renderer {
       passEncoder.end();
 
       device.queue.submit([commandEncoder.finish()]);
+    //   {
+    //     var dbgBuffer = this.device.createBuffer({
+    //         size: this.mortonCodeBuffer!.size,
+    //         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+    //     });
+
+    //     let commandEncoder2 = device.createCommandEncoder();
+    //     commandEncoder2.copyBufferToBuffer(this.mortonCodeBuffer!, 0, dbgBuffer, 0, dbgBuffer.size);
+    //     this.device.queue.submit([commandEncoder2.finish()]);
+    //     await this.device.queue.onSubmittedWorkDone();
+
+    //     await dbgBuffer.mapAsync(GPUMapMode.READ);
+
+    //     var debugValsf = new Uint32Array(dbgBuffer.getMappedRange());
+    //     console.log(debugValsf);
+    // }
       // requestAnimationFrame(this.frame!);
     }
 
@@ -307,6 +338,10 @@ class Renderer {
     });
     new Float32Array(this.nodeDataBuffer.getMappedRange()).set(nodeData);
     this.nodeDataBuffer.unmap();
+    this.mortonCodeBuffer = this.device.createBuffer({
+      size: nodeData.length,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+    });
     this.edgeDataBuffer = this.device.createBuffer({
       size: edgeData.length * 4,
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
@@ -351,6 +386,12 @@ class Renderer {
           resource: {
             buffer: this.nodeDataBuffer!,
           }
+        },
+        {
+          binding: 2,
+          resource: {
+            buffer: this.mortonCodeBuffer!,
+          }
         }
       ],
     });
@@ -384,7 +425,7 @@ class Renderer {
 
   async runForceDirected() {
     this.forceDirected!.runForces(
-      this.nodeDataBuffer!, this.edgeDataBuffer!, this.nodeLength, this.edgeLength,
+      this.nodeDataBuffer!, this.edgeDataBuffer!, this.mortonCodeBuffer!, this.nodeLength, this.edgeLength,
       this.coolingFactor, this.idealLength, 10000, 100, this.iterRef,
       this.sourceEdgeDataBuffer, this.targetEdgeDataBuffer, this.frame!
     );

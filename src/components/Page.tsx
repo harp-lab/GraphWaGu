@@ -40,8 +40,11 @@ class Page extends React.Component<{}, PageState> {
         }
         const device = await adapter.requestDevice({
             requiredLimits: {
-                "maxStorageBufferBindingSize": adapter.limits.maxStorageBufferBindingSize,
-                "maxComputeWorkgroupsPerDimension": adapter.limits.maxComputeWorkgroupsPerDimension
+                maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize,
+                maxComputeWorkgroupsPerDimension: adapter.limits.maxComputeWorkgroupsPerDimension,
+                maxBufferSize: adapter.limits.maxBufferSize,
+                maxComputeInvocationsPerWorkgroup: adapter.limits.maxComputeInvocationsPerWorkgroup,
+                maxComputeWorkgroupStorageSize: adapter.limits.maxComputeWorkgroupStorageSize
             }
         });
         this.setState({
