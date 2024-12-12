@@ -607,7 +607,7 @@ export class ForceDirected {
             const sortEncoder = this.device.createCommandEncoder();
             this.sorter.sort(sortEncoder, this.device.queue, sortBuffers);
             this.device.queue.submit([sortEncoder.finish()]);
-            await this.device.queue.onSubmittedWorkDone();
+            // await this.device.queue.onSubmittedWorkDone();
             end = performance.now();
             console.log(`Sort took ${end - start} ms`);
             // {
@@ -659,7 +659,7 @@ export class ForceDirected {
                 1
             );
             // this.device.queue.submit([commandEncoder.finish()]);
-            await this.device.queue.onSubmittedWorkDone();
+            // await this.device.queue.onSubmittedWorkDone();
             let endTot = performance.now();
             totalTree += endTot - startTot;
             console.log(`Create Tree took ${endTot - startTot}ms`)
@@ -931,7 +931,7 @@ export class ForceDirected {
         // await this.device.queue.onSubmittedWorkDone();
 
         // const iterAvg : number = iterationTimes.reduce(function(a, b) {return a + b}) / iterationTimes.length;
-        iterRef.current!.innerText = `Completed in ${numIterations} iterations with average iteration time ${totalTime / numIterations} and tree time ${totalTree / numIterations}`;
+        iterRef.current!.innerText = `Completed in ${numIterations} iterations with average iteration time ${totalTime / numIterations}`;
         // let d3Format = this.formatToD3Format(
         //     positionList,
         //     edgeList,
