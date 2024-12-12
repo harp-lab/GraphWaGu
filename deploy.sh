@@ -10,10 +10,15 @@ set -e
 cd dist
 
 git init
+if ! git remote | grep -q 'origin'; then
+    git remote add origin git@github.com:harp-lab/GraphWaGu.git
+fi
+git pull
+git checkout gh-pages
 git add -A
 git commit -m 'deploy'
 
 # 发布到 https://<USERNAME>.github.io/<REPO>
-git push -f  git@github.com:harp-lab/GraphWaGu.git master:gh-pages
+git push -f
 
 cd -
