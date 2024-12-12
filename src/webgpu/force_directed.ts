@@ -519,7 +519,7 @@ export class ForceDirected {
             size: nodeLength * 4 * 4,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
         });
-        iterationCount = 1000;
+        iterationCount = 2000;
         let numIterations = 0;
         var totalTime = 0;
         var totalTree = 0;
