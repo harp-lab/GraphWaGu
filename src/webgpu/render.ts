@@ -27,7 +27,7 @@ class Renderer {
   public edgeToggle: boolean = true;
   public canvasSize: [number, number] | null = null;
   public idealLength: number = 0.01;
-  public coolingFactor: number = 0.9;
+  public coolingFactor: number = 0.985;
   public iterRef: React.RefObject<HTMLLabelElement>;
   public frame: (() => void) | undefined;
   public edgeList: Array<number> = [];
