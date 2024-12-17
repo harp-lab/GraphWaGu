@@ -49,7 +49,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
         return;
     }
     let node = nodes[index];
-    var theta : f32 = 0.8;
+    var theta : f32 = 1.0;
     var r_force : vec2<f32> = vec2<f32>(0.0, 0.0);
     var a_force : vec2<f32> = vec2<f32>(forces[index * 2u], forces[index * 2u + 1u]);
     var tree_idx : u32 = tree_info.max_index;

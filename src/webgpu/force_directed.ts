@@ -538,8 +538,9 @@ export class ForceDirected {
         let start, end : number;
         // let totalSum = 0;
         // let treeSum = 0;
+        const totalStart = performance.now();
         while (iterationCount > 0 && this.coolingFactor > 0.0001 && this.force >= 0) {
-            const totalStart = performance.now();
+            const frameStart = performance.now();
             numIterations++;
             iterationCount--;
             // Set up params (node length, edge length)
@@ -558,7 +559,7 @@ export class ForceDirected {
             commandEncoder.copyBufferToBuffer(upload, 0, this.paramsBuffer, 0, 4 * 4);
             // commandEncoder.copyBufferToBuffer(clearBuffer, 0, this.quadTreeBuffer, 0, quadTreeLength);
             this.device.queue.submit([commandEncoder.finish()]);
-            await this.device.queue.onSubmittedWorkDone();
+            // await this.device.queue.onSubmittedWorkDone();
             start = performance.now();
             commandEncoder = this.device.createCommandEncoder();
             let computePassEncoder = commandEncoder.beginComputePass();
@@ -570,7 +571,7 @@ export class ForceDirected {
             this.device.queue.submit([commandEncoder.finish()]);
             // await this.device.queue.onSubmittedWorkDone();
             end = performance.now();
-            console.log(`Morton codes took ${end - start}ms`)
+            // console.log(`Morton codes took ${end - start}ms`)
             // {
             //     var dbgBuffer = this.device.createBuffer({
             //         size: treeBuffer.size,
@@ -609,7 +610,7 @@ export class ForceDirected {
             this.device.queue.submit([sortEncoder.finish()]);
             // await this.device.queue.onSubmittedWorkDone();
             end = performance.now();
-            console.log(`Sort took ${end - start} ms`);
+            // console.log(`Sort took ${end - start} ms`);
             // {
             //     var dbgBuffer = this.device.createBuffer({
             //         size: sortBuffers.keys.size,
@@ -648,8 +649,7 @@ export class ForceDirected {
                 // await this.device.queue.onSubmittedWorkDone();
                 maxIndex += Math.ceil(nodeLength / 4**(i+1))
                 end = performance.now();
-                console.log(`Create Tree iter ${i} took ${end - start}ms`)
-                console.log(maxIndex);
+                // console.log(`Create Tree iter ${i} took ${end - start}ms`)
             }
             this.device.queue.writeBuffer(
                 treeInfoBuffer,
@@ -662,7 +662,7 @@ export class ForceDirected {
             // await this.device.queue.onSubmittedWorkDone();
             let endTot = performance.now();
             totalTree += endTot - startTot;
-            console.log(`Create Tree took ${endTot - startTot}ms`)
+            // console.log(`Create Tree took ${endTot - startTot}ms`)
             // {
             //     var dbgBuffer = this.device.createBuffer({
             //         size: treeBuffer.size,
@@ -799,7 +799,7 @@ export class ForceDirected {
             start = performance.now();
             // await this.device.queue.onSubmittedWorkDone();
             end = performance.now();
-            console.log(`attract force time: ${end - start}`)
+            // console.log(`attract force time: ${end - start}`)
 
             // Run compute forces BH pass
             start = performance.now();
@@ -813,7 +813,7 @@ export class ForceDirected {
             this.device.queue.submit([commandEncoder.finish()]);
             // await this.device.queue.onSubmittedWorkDone();
             end = performance.now();
-            console.log(`repulse force time: ${end - start}`)
+            // console.log(`repulse force time: ${end - start}`)
 
             // {
             //     var dbgBuffer = this.device.createBuffer({
@@ -878,9 +878,9 @@ export class ForceDirected {
             );
 
             this.device.queue.submit([commandEncoder.finish()]);
-            await this.device.queue.onSubmittedWorkDone();
+            // await this.device.queue.onSubmittedWorkDone();
             end = performance.now();
-            console.log(`apply forces time ${end - start}`)
+            // console.log(`apply forces time ${end - start}`)
             // iterationTimes.push(end - start);
 
             // this.maxForceResultBuffer.unmap();
@@ -914,24 +914,28 @@ export class ForceDirected {
             // if (output[11] > 0) {
             //     break;
             // }
-            const totalEnd = performance.now();
-            console.log(`Total frame time: ${totalEnd - totalStart}`);
-            totalTime += totalEnd - totalStart;
             stackBuffer.destroy();
             this.coolingFactor = this.coolingFactor * coolingFactor;
             // if ((numIterations % 50 == 0) && (numIterations < 1400)) {
             //     this.coolingFactor = 0.8;
             // }
             iterRef.current!.innerText = `Iteration ${numIterations}`;
-            requestAnimationFrame(frame);
+            if (numIterations % 10 == 0) {
+                requestAnimationFrame(frame);
+                await this.device.queue.onSubmittedWorkDone();
+            }
+            const frameEnd = performance.now();
+            console.log(`Total frame time: ${frameEnd - frameStart}`);
+            totalTime += frameEnd - frameStart;
         }
         await positionReadBuffer.mapAsync(GPUMapMode.READ);
         // let positionArrayBuffer = positionReadBuffer.getMappedRange();
         // let positionList = new Float32Array(positionArrayBuffer);
-        // await this.device.queue.onSubmittedWorkDone();
+        await this.device.queue.onSubmittedWorkDone();
+        const totalEnd = performance.now();
 
         // const iterAvg : number = iterationTimes.reduce(function(a, b) {return a + b}) / iterationTimes.length;
-        iterRef.current!.innerText = `Completed in ${numIterations} iterations with average iteration time ${totalTime / numIterations}`;
+        iterRef.current!.innerText = `Completed in ${numIterations} iterations with total time ${totalEnd - totalStart} average iteration time ${(totalEnd - totalStart) / numIterations}`;
         // let d3Format = this.formatToD3Format(
         //     positionList,
         //     edgeList,
