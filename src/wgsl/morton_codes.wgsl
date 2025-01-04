@@ -180,7 +180,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     //     morton, 16u
     // );
     tree[idx + 1u] = TreeNode(
-        vec4<f32>(0.0, 0.0, 1.0 / f32(1u << 16u), 1.0 / f32(1u << 16u)),
+        vec4<f32>(0.0, 0.0, (1.0 / f32(1u << 16u)) * (x_max - x_min), (1.0 / f32(1u << 16u)) * (y_max - y_min)),
         vec2<f32>(node.x, node.y),
         1.0, 0u,
         code, 16u, 0u, 0u,

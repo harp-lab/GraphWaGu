@@ -69,7 +69,10 @@ fn find_morton_split_level(morton1: u32, morton2: u32) -> u32 {
 
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
-    let test = bounding;
+    let x_min = f32(bounding.x_min) / 1000.0;
+    let x_max = f32(bounding.x_max) / 1000.0;
+    let y_min = f32(bounding.y_min) / 1000.0;
+    let y_max = f32(bounding.y_max) / 1000.0;
     let step = tree_info.step;
     var idx = global_id.x * cluster_size;
     var start = f32(uniforms.nodes_length);
@@ -115,7 +118,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
         mass = mass + node.mass;
     }
     tree[end + global_id.x + 1] = TreeNode(
-        vec4<f32>(0.0, 0.0, 1.0 / f32(1u << level), 1.0 / f32(1u << level)),
+        vec4<f32>(0.0, 0.0, (1.0 / f32(1u << level)) * (x_max - x_min), (1.0 / f32(1u << level)) * (y_max - y_min)),
         CoM,
         mass, 
         0u, 
