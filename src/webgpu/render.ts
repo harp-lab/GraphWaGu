@@ -34,6 +34,8 @@ class Renderer {
   public mortonCodeBuffer: GPUBuffer | null = null;
   public energy: number = 0.1;
   public theta: number = 2;
+  canvasRef: any;
+  viewExtreme: number;
 
   constructor(
     device: GPUDevice,
@@ -42,6 +44,8 @@ class Renderer {
   ) {
     this.iterRef = iterRef;
     this.device = device;
+    this.canvasRef = canvasRef;
+    this.viewExtreme = 2;
     // Check that canvas is active
     if (canvasRef.current === null) return;
     const context = canvasRef.current.getContext('webgpu')!;
@@ -187,9 +191,6 @@ class Renderer {
       size: 4 * 4,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
-    device.queue.writeBuffer(this.viewBoxBuffer, 0, new Float32Array([-1, -1, 2, 2]), 0, 4);
-
-    this.setController(canvasRef);
 
     this.nodeBindGroup = device.createBindGroup({
       layout: this.nodePipeline.getBindGroupLayout(0),
@@ -398,8 +399,10 @@ class Renderer {
       ],
     });
     this.edgeLength = edgeData.length;
-
     this.nodeLength = nodeData.length / 4;
+    this.viewExtreme = 1 + Math.max(1, (this.nodeLength / 100000));
+    this.device.queue.writeBuffer(this.viewBoxBuffer!, 0, new Float32Array([-1, -1, this.viewExtreme, this.viewExtreme]), 0, 4);
+    this.setController();
     this.sourceEdgeDataBuffer = this.device.createBuffer({
       size: edgeData.length * 4,
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
@@ -453,9 +456,9 @@ class Renderer {
     this.edgeToggle = !this.edgeToggle;
   }
 
-  setController(canvasRef: React.RefObject<HTMLCanvasElement>) {
-    let translation = [-1, -1, 2, 2];
-    let newTranslation = [-1, -1, 2, 2];
+  setController() {
+    let translation = [-1, -1, this.viewExtreme, this.viewExtreme];
+    let newTranslation = [-1, -1, this.viewExtreme, this.viewExtreme];
     const controller = new Controller();
     controller.mousemove = (prev, cur, evt) => {
       if (evt.buttons === 1) {
@@ -479,7 +482,7 @@ class Renderer {
         newTranslation = translation;
       }
     };
-    controller.registerForCanvas(canvasRef.current!);
+    controller.registerForCanvas(this.canvasRef.current!);
   }
 }
 export default Renderer;

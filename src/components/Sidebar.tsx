@@ -45,12 +45,12 @@ type edge = {
   target: number
 }
 type node = {
-  name: string,
-  x: number,
-  y: number
+  name: string | null,
+  x: number | null,
+  y: number | null
 }
 type Graph = {
-  nodes: Array<node>,
+  nodes: Array<any>,
   edges: Array<edge>
 }
 class Sidebar extends React.Component<SidebarProps, SidebarState> {
@@ -77,11 +77,17 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
     const sourceEdges: Array<number> = [];
     const targetEdges: Array<number> = [];
 
+      
     for (let i = 0; i < graph.nodes.length; i++) {
       if (graph.nodes[i].x) {
         nodeData.push(0.0, graph.nodes[i].x, graph.nodes[i].y, 1.0);
       } else {
-        nodeData.push(0.0, Math.random(), Math.random(), 1.0);
+        nodeData.push(
+          0.0, Math.random() 
+          * Math.max(1, (graph.nodes.length / 100000))
+          , Math.random() 
+          * Math.max(1, (graph.nodes.length / 100000))
+          , 1.0);
       }
     }
     for (let i = 0; i < graph.edges.length; i++) {
@@ -107,13 +113,69 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
     this.setState({ nodeData: nodeData, edgeData: edgeData, sourceEdges: sourceEdges, targetEdges: targetEdges });
   }
 
-  readJson(event: React.ChangeEvent<HTMLInputElement>) {
+  async readJson(event: React.ChangeEvent<HTMLInputElement>) {
     const files: FileList = event.target.files!;
-    const jsonReader = new FileReader();
-    jsonReader.onload = () => {
-      this.loadGraph(JSON.parse(jsonReader.result as string) as Graph);
-    };
-    jsonReader.readAsText(files[0]);
+    const file = files[0];
+    console.log(file);
+    if (file.type == "application/xml") {
+      const jsonReader = new FileReader();
+      jsonReader.onload = () => {
+        let i = 0;
+        
+        // Split file content into lines
+        const lines = (jsonReader.result as String).split('\n');
+        let lineIndex = 0;
+        let nodes : Array<any> = [];
+        let edges : Array<any> = [];
+        
+        // Skip comments and get dimensions
+        while (lineIndex < lines.length) {
+            const line = lines[lineIndex].trim();
+            if (!line.startsWith('%')) {
+                // First non-comment line contains matrix dimensions
+                const [rows, cols] = line.split(/\s+/).map(Number);
+                // Create nodes list directly from matrix dimensions
+                const numNodes = Math.max(rows, cols);
+                nodes = Array.from({ length: numNodes }, (_, index) => ({
+                    id: index,
+                    label: index.toString()
+                }));
+                lineIndex++;
+                break;
+            }
+            lineIndex++;
+        }
+        
+        // Process each edge
+        while (lineIndex < lines.length) {
+            const line = lines[lineIndex].trim();
+            if (line) {  // Skip empty lines
+                i++;
+                // if (i % 100000 === 0) {
+                //     console.log(i);
+                // }
+                
+                const values = line.split(/\s+/);
+                const row = parseInt(values[0]) - 1;  // MTX format is 1-based
+                const col = parseInt(values[1]) - 1;
+                
+                edges.push({
+                    source: row,
+                    target: col
+                });
+            }
+            lineIndex++;
+        }
+        this.loadGraph({nodes: nodes, edges: edges} as Graph);
+      };
+      jsonReader.readAsText(files[0]);
+    } else {
+      const jsonReader = new FileReader();
+      jsonReader.onload = () => {
+        this.loadGraph(JSON.parse(jsonReader.result as string) as Graph);
+      };
+      jsonReader.readAsText(files[0]);
+    }
   }
 
   async chooseDataset(dataset: keyof typeof datasets) {
