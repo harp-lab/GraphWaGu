@@ -110,6 +110,7 @@ fn morton_to_rectangle(morton: u32, level: u32) -> vec4<f32> {
 
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
+    let test = bounding;
     let step = tree_info.step;
     var idx = global_id.x * 4;
     var start = f32(uniforms.nodes_length);
@@ -153,7 +154,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     if (idx == end - 2) {
         let level = min(find_morton_split_level(morton1, morton2), min(node1.level, node2.level));
         tree[end + global_id.x + 1] = TreeNode(
-            morton_to_rectangle(morton1, level),
+            vec4<f32>(0.0, 0.0, 1.0 / f32(1u << level), 1.0 / f32(1u << level)),
             (node1.mass * node1.CoM + node2.mass * node2.CoM) / (node1.mass + node2.mass),
             node1.mass + node2.mass, 
             morton2, 
@@ -165,7 +166,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     if (idx == end - 3) {
         let level = min(min(find_morton_split_level(morton3, morton2), min(find_morton_split_level(morton1, morton2), min(node1.level, node2.level))), node3.level);
         tree[end + global_id.x + 1] = TreeNode(
-            morton_to_rectangle(morton1, level),
+            vec4<f32>(0.0, 0.0, 1.0 / f32(1u << level), 1.0 / f32(1u << level)),
             (node1.mass * node1.CoM + node2.mass * node2.CoM + node3.mass * node3.CoM) / (node1.mass + node2.mass + node3.mass),
             node1.mass + node2.mass + node3.mass, 
             morton2, 
@@ -178,7 +179,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     let level34 = min(find_morton_split_level(morton3, morton4), min(node3.level, node4.level));
     let level = min(find_morton_split_level(morton2, morton3), min(level12, level34));
     tree[end + global_id.x + 1] = TreeNode(
-        morton_to_rectangle(morton1, level),
+        vec4<f32>(0.0, 0.0, 1.0 / f32(1u << level), 1.0 / f32(1u << level)),
         (node1.mass * node1.CoM + node2.mass * node2.CoM + node3.mass * node3.CoM + node4.mass * node4.CoM) / (node1.mass + node2.mass + node3.mass + node4.mass),
         node1.mass + node2.mass + node3.mass + node4.mass, 
         morton2, 

@@ -96,6 +96,56 @@ fn morton_to_rectangle(morton: u32, level: u32) -> vec4<f32> {
     return vec4<f32>(world_x, world_y, world_w, world_h);
 }
 
+fn rotate_bits(n: u32, rx: u32, ry: u32, order: u32) -> u32 {
+    if (ry == 0u) {
+        if (rx == 1u) {
+            // Reflect about y=x
+            let mask = (1u << order) - 1u;
+            return mask - n;
+        }
+    }
+    return n;
+}
+
+fn hilbert_xy_to_d(x_in: u32, y_in: u32) -> u32 {
+    var d: u32 = 0u;
+    var x: u32 = x_in;
+    var y: u32 = y_in;
+    var rx: u32;
+    var ry: u32;
+    
+    // Process 16 bits of input coordinates
+    for(var i: u32 = 0u; i < 16u; i += 1u) {
+        let s = 15u - i;
+        
+        // Extract current bit of x and y from highest positions
+        rx = (x >> 15u) & 1u;
+        ry = (y >> 15u) & 1u;
+        
+        // Add position to result
+        d |= ((3u * rx) ^ ry) << (2u * s);
+        
+        // Rotate coordinates if needed for next iteration
+        if (ry == 0u) {
+            if (rx == 1u) {
+                // Reflect about y=x
+                x = (1u << 16u) - 1u - x;
+                y = (1u << 16u) - 1u - y;
+            }
+            // Swap x and y
+            let t = x;
+            x = y;
+            y = t;
+        }
+        
+        // Shift coordinates for next iteration
+        x = (x << 1u) & 0xFFFFu;
+        y = (y << 1u) & 0xFFFFu;
+    }
+    
+    return d;
+}
+
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     let idx = global_id.x;
@@ -114,12 +164,19 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     
     // Compute Morton code by interleaving bits
     let morton = spread_bits(x_fixed) | (spread_bits(y_fixed) << 1);
+    let hilbert = hilbert_xy_to_d(x_fixed, y_fixed);
     
-    // Store result
-    morton_codes[idx] = morton;
+    morton_codes[idx] = hilbert;
+    // morton_codes[idx] = morton;
     morton_indices[idx] = idx;
+    // tree[idx + 1u] = TreeNode(
+    //     morton_to_rectangle(morton, 16),
+    //     vec2<f32>(node.x, node.y),
+    //     1.0, 0.0, vec4<u32>(0u),
+    //     morton, 16u
+    // );
     tree[idx + 1u] = TreeNode(
-        morton_to_rectangle(morton, 16),
+        vec4<f32>(0.0, 0.0, 1.0 / f32(1u << 16u), 1.0 / f32(1u << 16u)),
         vec2<f32>(node.x, node.y),
         1.0, 0.0, vec4<u32>(0u),
         morton, 16u
