@@ -44,7 +44,7 @@ struct TreeNode {
 @group(0) @binding(3) var<uniform> tree_info : TreeInfo;
 @group(0) @binding(4) var<storage, read> tree : array<TreeNode>;
 
-@compute @workgroup_size(64, 1, 1)
+@compute @workgroup_size(128, 1, 1)
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     var stack = array<u32, 64>();
     let l : f32 = uniforms.ideal_length;

@@ -36,7 +36,7 @@ struct Uniforms {
 @group(0) @binding(4) var<storage, read> nodes : Nodes;
 @group(0) @binding(5) var<uniform> uniforms : Uniforms;
 
-@compute @workgroup_size(64, 1, 1)
+@compute @workgroup_size(128, 1, 1)
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     if (global_id.x >= uniforms.nodes_length) {
         return;

@@ -90,6 +90,7 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
           , 1.0);
       }
     }
+    console.log(nodeData);
     for (let i = 0; i < graph.edges.length; i++) {
       const source = graph.edges[i].source;
       const target = graph.edges[i].target;
@@ -102,7 +103,6 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
       const target = graph.edges[i].target;
       sourceEdges.push(source, target);
     }
-    console.log(sourceEdges);
     graph.edges.sort(function (a, b) { return (a.target > b.target) ? 1 : ((b.target > a.target) ? -1 : 0); });
     for (let i = 0; i < graph.edges.length; i++) {
       const source = graph.edges[i].source;
@@ -207,7 +207,7 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
                 <Form.Label className="mb-0 me-2" style={{ width: '120px' }}>Ideal Length:</Form.Label>
                 <Form.Control
                   type="number"
-                  defaultValue={0.0005}
+                  defaultValue={0.005}
                   min={0.0001}
                   max={0.05}
                   step={0.0001}
@@ -233,7 +233,7 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
                   type="number"
                   defaultValue={2}
                   min={0.5}
-                  max={16.0}
+                  max={32.0}
                   step={0.1}
                   onChange={(e) => this.props.setTheta(parseFloat(e.target.value))}
                 />

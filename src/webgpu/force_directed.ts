@@ -590,7 +590,7 @@ export class ForceDirected {
             let computePassEncoder = commandEncoder.beginComputePass();
             computePassEncoder.setBindGroup(0, mortonCodeBindGroup);
             computePassEncoder.setPipeline(this.mortonCodePipeline);
-            computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / 64), 1, 1);
+            computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / 128), 1, 1);
             computePassEncoder.end();
             commandEncoder.copyBufferToBuffer(this.mortonCodeBuffer, 0, sortBuffers.keys, 0, this.mortonCodeBuffer.size);
             this.device.queue.submit([commandEncoder.finish()]);
@@ -668,7 +668,7 @@ export class ForceDirected {
                 computePassEncoder = commandEncoder.beginComputePass();
                 computePassEncoder.setBindGroup(0, createTreeBindGroup);
                 computePassEncoder.setPipeline(this.createTreePipeline);
-                computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / (64 * this.clusterSize**(i+1))), 1, 1);
+                computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / (128 * this.clusterSize**(i+1))), 1, 1);
                 computePassEncoder.end();
                 this.device.queue.submit([commandEncoder.finish()]);
                 // await this.device.queue.onSubmittedWorkDone();
@@ -816,7 +816,7 @@ export class ForceDirected {
             computePassEncoder = commandEncoder.beginComputePass();
             computePassEncoder.setBindGroup(0, attractBindGroup);
             computePassEncoder.setPipeline(this.computeAttractiveNewPipeline);
-            computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / 64), 1, 1);
+            computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / 128), 1, 1);
             computePassEncoder.end();
 
             this.device.queue.submit([commandEncoder.finish()]);
@@ -832,7 +832,7 @@ export class ForceDirected {
             const pass = commandEncoder.beginComputePass();
             pass.setBindGroup(0, computeForcesBHBindGroup);
             pass.setPipeline(this.computeForcesBHPipeline);
-            pass.dispatchWorkgroups(Math.ceil(nodeLength / 64), 1, 1);
+            pass.dispatchWorkgroups(Math.ceil(nodeLength / 128), 1, 1);
             pass.end();
             this.device.queue.submit([commandEncoder.finish()]);
             if (debug) {await this.device.queue.onSubmittedWorkDone();}
@@ -883,24 +883,24 @@ export class ForceDirected {
             // Run apply forces pass
             computePassEncoder.setBindGroup(0, applyBindGroup);
             computePassEncoder.setPipeline(this.applyForcesPipeline);
-            computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / (2 * 64)), 1, 1);
+            computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / (2 * 128)), 1, 1);
             computePassEncoder.end();
 
-            commandEncoder.copyBufferToBuffer(
-                rangeBuffer /* source buffer */,
-                0 /* source offset */,
-                gpuReadBuffer /* destination buffer */,
-                0 /* destination offset */,
-                4 * 4 /* size */
-            );
+            // commandEncoder.copyBufferToBuffer(
+            //     rangeBuffer /* source buffer */,
+            //     0 /* source offset */,
+            //     gpuReadBuffer /* destination buffer */,
+            //     0 /* destination offset */,
+            //     4 * 4 /* size */
+            // );
 
-            commandEncoder.copyBufferToBuffer(
-                this.nodeDataBuffer,
-                0,
-                positionReadBuffer,
-                0,
-                nodeLength * 4 * 4
-            );
+            // commandEncoder.copyBufferToBuffer(
+            //     this.nodeDataBuffer,
+            //     0,
+            //     positionReadBuffer,
+            //     0,
+            //     nodeLength * 4 * 4
+            // );
 
             this.device.queue.submit([commandEncoder.finish()]);
             if (debug) {await this.device.queue.onSubmittedWorkDone();}

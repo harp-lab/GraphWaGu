@@ -67,7 +67,7 @@ fn find_morton_split_level(morton1: u32, morton2: u32) -> u32 {
     return level;
 }
 
-@compute @workgroup_size(64, 1, 1)
+@compute @workgroup_size(128, 1, 1)
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     let x_min = f32(bounding.x_min) / 1000.0;
     let x_max = f32(bounding.x_max) / 1000.0;

@@ -149,7 +149,7 @@ fn hilbert_xy_to_d(x_in: u32, y_in: u32) -> u32 {
     return d;
 }
 
-@compute @workgroup_size(64, 1, 1)
+@compute @workgroup_size(128, 1, 1)
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     let idx = global_id.x;
     if (idx >= uniforms.nodes_length) {

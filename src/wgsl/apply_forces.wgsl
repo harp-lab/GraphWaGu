@@ -31,7 +31,7 @@ struct Range {
 @group(0) @binding(2) var<uniform> uniforms : Uniforms;
 @group(0) @binding(3) var<storage, read_write> bounding : Range;
 
-@compute @workgroup_size(64, 1, 1)
+@compute @workgroup_size(128, 1, 1)
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     if (global_id.x >= uniforms.nodes_length) {
         return;
