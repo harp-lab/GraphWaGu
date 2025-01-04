@@ -37,6 +37,9 @@ export class ForceDirected {
     public force: number = 1000.0;
     public mortonCodePipeline: GPUComputePipeline;
     public mortonCodeBuffer: GPUBuffer;
+    public energy: number = 0.2;
+    public theta: number = 0.8;
+    public stopForce: boolean = false;
 
     constructor(device: GPUDevice) {
         this.device = device;
@@ -220,12 +223,17 @@ export class ForceDirected {
         return { nodeArray, edgeArray }
     }
 
+    stopForces() {
+        this.stopForce = true;
+    }
+
     async runForces(
         nodeDataBuffer = this.nodeDataBuffer,
         edgeDataBuffer = this.edgeDataBuffer,
         mortonCodeBuffer = this.mortonCodeBuffer,
         nodeLength: number = 0, edgeLength: number = 0,
         coolingFactor = this.coolingFactor, l = 0.01,
+        energy: number = 0.2, theta: number = 0.8,
         iterationCount = this.iterationCount,
         threshold = this.threshold,
         iterRef: RefObject<HTMLLabelElement>,
@@ -233,12 +241,15 @@ export class ForceDirected {
         targetEdgeBuffer: GPUBuffer | null,
         frame: FrameRequestCallback,
     ) {
+        this.stopForce = false;
         // coolingFactor = 0.995;
         // l = 0.01;
         if (nodeLength === 0 || edgeLength === 0 || nodeDataBuffer === null || edgeDataBuffer === null) {
             alert("No data to run");
             return;
         }
+        this.energy = energy;
+        this.theta = theta;
         this.coolingFactor = coolingFactor;
         this.nodeDataBuffer = nodeDataBuffer;
         this.mortonCodeBuffer = mortonCodeBuffer;
@@ -283,9 +294,16 @@ export class ForceDirected {
 
         // Create a buffer to store the params, output, and min/max
         const treeInfoBuffer = this.device.createBuffer({
-            size: 2 * 4,
+            size: 4 * 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
+        this.device.queue.writeBuffer(
+            treeInfoBuffer,
+            8,
+            new Float32Array([this.theta]),
+            0,
+            1
+        );
 
         this.forceDataBuffer = this.device.createBuffer({
             size: nodeLength * 2 * 4,
@@ -519,7 +537,7 @@ export class ForceDirected {
             size: nodeLength * 4 * 4,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
         });
-        iterationCount = 2000;
+        // iterationCount = 2000;
         let numIterations = 0;
         var totalTime = 0;
         var totalTree = 0;
@@ -907,8 +925,10 @@ export class ForceDirected {
             //     break;
             // }
             this.coolingFactor = this.coolingFactor * 0.9;
-            if ((numIterations % 20 == 0) && (numIterations < 1600)) {
-                this.coolingFactor = 1.0;
+            if (numIterations % 20 == 0) {
+                if (!this.stopForce) {
+                    this.coolingFactor = this.energy;
+                }
             }
             iterRef.current!.innerText = `Iteration ${numIterations}`;
             if (debug) {await this.device.queue.onSubmittedWorkDone();}

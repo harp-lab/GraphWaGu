@@ -32,6 +32,8 @@ class Renderer {
   public frame: (() => void) | undefined;
   public edgeList: Array<number> = [];
   public mortonCodeBuffer: GPUBuffer | null = null;
+  public energy: number = 0.2;
+  public theta: number = 0.8;
 
   constructor(
     device: GPUDevice,
@@ -185,7 +187,7 @@ class Renderer {
       size: 4 * 4,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
-    device.queue.writeBuffer(this.viewBoxBuffer, 0, new Float32Array([0, 0, 1, 1]), 0, 4);
+    device.queue.writeBuffer(this.viewBoxBuffer, 0, new Float32Array([-1, -1, 2, 2]), 0, 4);
 
     this.setController(canvasRef);
 
@@ -423,12 +425,24 @@ class Renderer {
     this.idealLength = value;
   }
 
+  setEnergy(value: number) {
+    this.energy = value;
+  }
+
+  setTheta(value: number) {
+    this.theta = value;
+  }
+
   async runForceDirected() {
     this.forceDirected!.runForces(
       this.nodeDataBuffer!, this.edgeDataBuffer!, this.mortonCodeBuffer!, this.nodeLength, this.edgeLength,
-      this.coolingFactor, this.idealLength, 10000, 100, this.iterRef,
+      this.coolingFactor, this.idealLength, this.energy, this.theta, 10000, 100, this.iterRef,
       this.sourceEdgeDataBuffer, this.targetEdgeDataBuffer, this.frame!
     );
+  }
+
+  async stopForceDirected() {
+    this.forceDirected!.stopForces();
   }
 
   toggleNodeLayer() {
@@ -440,8 +454,8 @@ class Renderer {
   }
 
   setController(canvasRef: React.RefObject<HTMLCanvasElement>) {
-    let translation = [0, 0, 1, 1];
-    let newTranslation = [0, 0, 1, 1];
+    let translation = [-1, -1, 2, 2];
+    let newTranslation = [-1, -1, 2, 2];
     const controller = new Controller();
     controller.mousemove = (prev, cur, evt) => {
       if (evt.buttons === 1) {

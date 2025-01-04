@@ -15,7 +15,8 @@ struct Uniforms {
 };
 struct TreeInfo {
     step : u32,
-    max_index : u32
+    max_index : u32,
+    theta : f32,
 };
 struct Range {
     x_min : i32,
@@ -49,7 +50,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
         return;
     }
     let node = nodes[index];
-    var theta : f32 = 2.0;
+    var theta : f32 = tree_info.theta;
     var r_force : vec2<f32> = vec2<f32>(0.0, 0.0);
     var a_force : vec2<f32> = vec2<f32>(forces[index * 2u], forces[index * 2u + 1u]);
     var tree_idx : u32 = tree_info.max_index;

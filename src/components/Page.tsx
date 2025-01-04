@@ -62,6 +62,14 @@ class Page extends React.Component<{}, PageState> {
         this.state.renderer!.setIdealLength(value);
     }
 
+    setEnergy(value: number) {
+        this.state.renderer!.setEnergy(value);
+    }
+
+    setTheta(value: number) {
+        this.state.renderer!.setTheta(value);
+    }
+
     setCoolingFactor(value: number) {
         this.state.renderer!.setCoolingFactor(value);
     }
@@ -76,6 +84,10 @@ class Page extends React.Component<{}, PageState> {
 
     runForceDirected() {
         this.state.renderer!.runForceDirected();
+    }
+
+    stopForceDirected() {
+        this.state.renderer!.stopForceDirected();
     }
 
     unmountTutorial() {
@@ -93,10 +105,13 @@ class Page extends React.Component<{}, PageState> {
                             <Sidebar
                                 setNodeEdgeData={this.setNodeEdgeData.bind(this)}
                                 setIdealLength={this.setIdealLength.bind(this)}
+                                setEnergy={this.setEnergy.bind(this)}
+                                setTheta={this.setTheta.bind(this)}
                                 setCoolingFactor={this.setCoolingFactor.bind(this)}
                                 toggleNodeLayer={this.toggleNodeLayer.bind(this)}
                                 toggleEdgeLayer={this.toggleEdgeLayer.bind(this)}
                                 runForceDirected={this.runForceDirected.bind(this)}
+                                stopForceDirected={this.stopForceDirected.bind(this)}
                             />
                             <div className="canvasContainer">
                                 <Form.Label className="h1 header">GraphWaGu</Form.Label>

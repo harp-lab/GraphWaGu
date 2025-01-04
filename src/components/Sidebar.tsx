@@ -26,9 +26,12 @@ type SidebarProps = {
   setNodeEdgeData: (nodeData: Array<number>, edgeData: Array<number>, sourceEdges: Array<number>, targetEdges: Array<number>) => void,
   setCoolingFactor: (value: number) => void,
   setIdealLength: (value: number) => void,
+  setTheta: (value: number) => void,
+  setEnergy: (value: number) => void,
   toggleNodeLayer: () => void,
   toggleEdgeLayer: () => void,
   runForceDirected: () => void,
+  stopForceDirected: () => void,
 }
 type SidebarState = {
   nodeData: Array<number>,
@@ -132,20 +135,72 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
               <Button className="mt-2" type="submit" variant="secondary" value="Submit">Submit</ Button>
             </Form.Group>
             {/*@ts-ignore */}
-            <Collapsible trigger="Layers">
+            <Collapsible trigger="Layers" open={true}>
               <Form.Check defaultChecked={true} onClick={() => this.props.toggleNodeLayer()} type="checkbox" label="Node Layer" />
               <Form.Check defaultChecked={true} onClick={() => this.props.toggleEdgeLayer()} type="checkbox" label="Edge Layer" />
             </Collapsible>
             {/*@ts-ignore */}
-            <Collapsible trigger="Force Directed Options">
-              <Form.Label> Ideal Length and Cooling Factor </Form.Label>
-              <br />
-              <input type="range" defaultValue={0.01} min={0.001} max={0.05} step={0.001} onChange={(e) => this.props.setIdealLength(parseFloat(e.target.value))} />
-              <input type="range" defaultValue={0.985} min={0.85} max={0.999} step={0.001} onChange={(e) => this.props.setCoolingFactor(parseFloat(e.target.value))} />
+            <Collapsible trigger="Force Directed Options" open={true}>
+              <div className="d-flex align-items-center mb-2">
+                <Form.Label className="mb-0 me-2" style={{ width: '120px' }}>Ideal Length:</Form.Label>
+                <Form.Control
+                  type="number"
+                  defaultValue={0.005}
+                  min={0.001}
+                  max={0.05}
+                  step={0.001}
+                  onChange={(e) => this.props.setIdealLength(parseFloat(e.target.value))}
+                />
+              </div>
+
+              <div className="d-flex align-items-center mb-2">
+                <Form.Label className="mb-0 me-2" style={{ width: '120px' }}>Cooling Factor:</Form.Label>
+                <Form.Control
+                  type="number"
+                  defaultValue={0.985}
+                  min={0.85}
+                  max={0.999}
+                  step={0.001}
+                  onChange={(e) => this.props.setCoolingFactor(parseFloat(e.target.value))}
+                />
+              </div>
+
+              <div className="d-flex align-items-center mb-2">
+                <Form.Label className="mb-0 me-2" style={{ width: '120px' }}>Theta:</Form.Label>
+                <Form.Control
+                  type="number"
+                  defaultValue={2.0}
+                  min={0.5}
+                  max={10.0}
+                  step={0.1}
+                  onChange={(e) => this.props.setTheta(parseFloat(e.target.value))}
+                />
+              </div>
+
+              <div className="d-flex align-items-center mb-2">
+                <Form.Label className="mb-0 me-2" style={{ width: '120px' }}>Energy:</Form.Label>
+                <Form.Control
+                  type="number"
+                  defaultValue={0.8}
+                  min={0.1}
+                  max={2.0}
+                  step={0.1}
+                  onChange={(e) => this.props.setEnergy(parseFloat(e.target.value))}
+                />
+              </div>
             </Collapsible>
             <br />
-            <Button onClick={() => this.props.runForceDirected()}>
+            <Button 
+              className="me-2" 
+              onClick={() => this.props.runForceDirected()}
+            >
               Run Force Directed Layout
+            </Button>
+            <Button 
+              variant="danger" 
+              onClick={() => this.props.stopForceDirected()}
+            >
+              Stop
             </Button>
           </Form>
         </Fragment>
