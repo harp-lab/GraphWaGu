@@ -145,10 +145,10 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
                 <Form.Label className="mb-0 me-2" style={{ width: '120px' }}>Ideal Length:</Form.Label>
                 <Form.Control
                   type="number"
-                  defaultValue={0.005}
-                  min={0.001}
+                  defaultValue={0.0005}
+                  min={0.0001}
                   max={0.05}
-                  step={0.001}
+                  step={0.0001}
                   onChange={(e) => this.props.setIdealLength(parseFloat(e.target.value))}
                 />
               </div>
@@ -169,9 +169,9 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
                 <Form.Label className="mb-0 me-2" style={{ width: '120px' }}>Theta:</Form.Label>
                 <Form.Control
                   type="number"
-                  defaultValue={2.0}
+                  defaultValue={2}
                   min={0.5}
-                  max={10.0}
+                  max={16.0}
                   step={0.1}
                   onChange={(e) => this.props.setTheta(parseFloat(e.target.value))}
                 />
@@ -181,10 +181,10 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
                 <Form.Label className="mb-0 me-2" style={{ width: '120px' }}>Energy:</Form.Label>
                 <Form.Control
                   type="number"
-                  defaultValue={0.8}
-                  min={0.1}
+                  defaultValue={0.1}
+                  min={0.01}
                   max={2.0}
-                  step={0.1}
+                  step={0.01}
                   onChange={(e) => this.props.setEnergy(parseFloat(e.target.value))}
                 />
               </div>

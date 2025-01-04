@@ -1,3 +1,4 @@
+const cluster_size = CHANGEMEu;
 struct Node {
     value : f32,
     x : f32,
@@ -30,9 +31,11 @@ struct TreeNode {
     CoM : vec2<f32>,
     mass : f32,
     test : u32,
-    pointers : vec4<u32>,
-    morton_code : u32,
-    level : u32
+    code : u32,
+    level : u32,
+    test2: u32,
+    test3: u32,
+    pointers : array<u32, cluster_size>,
 };
 
 @group(0) @binding(0) var<storage, read> nodes : array<Node>;
@@ -68,7 +71,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
             var dir : vec2<f32> = normalize(vec2<f32>(node.x, node.y) - tree_node.CoM);
             r_force = r_force + tree_node.mass * ((l * l) / dist) * dir;
         } else {
-            for (var i : u32 = 0u; i < 4u; i = i + 1u) {
+            for (var i : u32 = 0u; i < cluster_size; i = i + 1u) {
                 let child : u32 = tree_node.pointers[i];
                 if (child == 0 || tree[child].mass < 1.0) {
                     continue;

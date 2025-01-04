@@ -1,3 +1,4 @@
+const cluster_size = CHANGEMEu;
 struct Node {
     value : f32,
     x : f32,
@@ -21,10 +22,12 @@ struct TreeNode {
     boundary : vec4<f32>,
     CoM : vec2<f32>,
     mass : f32,
-    test : f32,
-    pointers : vec4<u32>,
-    morton_code : u32,
-    level : u32
+    test : u32,
+    code : u32,
+    level : u32,
+    test2: u32,
+    test3: u32,
+    pointers : array<u32, cluster_size>,
 };
 
 @group(0) @binding(0) var<storage, read> nodes : array<Node>;
@@ -165,8 +168,9 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     // Compute Morton code by interleaving bits
     let morton = spread_bits(x_fixed) | (spread_bits(y_fixed) << 1);
     let hilbert = hilbert_xy_to_d(x_fixed, y_fixed);
+    let code = hilbert;
     
-    morton_codes[idx] = hilbert;
+    morton_codes[idx] = code;
     // morton_codes[idx] = morton;
     morton_indices[idx] = idx;
     // tree[idx + 1u] = TreeNode(
@@ -178,7 +182,8 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     tree[idx + 1u] = TreeNode(
         vec4<f32>(0.0, 0.0, 1.0 / f32(1u << 16u), 1.0 / f32(1u << 16u)),
         vec2<f32>(node.x, node.y),
-        1.0, 0.0, vec4<u32>(0u),
-        morton, 16u
+        1.0, 0u,
+        code, 16u, 0u, 0u,
+        array<u32, cluster_size>()
     );
 }

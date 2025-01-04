@@ -26,14 +26,14 @@ class Renderer {
   public nodeToggle: boolean = true;
   public edgeToggle: boolean = true;
   public canvasSize: [number, number] | null = null;
-  public idealLength: number = 0.01;
+  public idealLength: number = 0.0005;
   public coolingFactor: number = 0.985;
   public iterRef: React.RefObject<HTMLLabelElement>;
   public frame: (() => void) | undefined;
   public edgeList: Array<number> = [];
   public mortonCodeBuffer: GPUBuffer | null = null;
-  public energy: number = 0.2;
-  public theta: number = 0.8;
+  public energy: number = 0.1;
+  public theta: number = 2;
 
   constructor(
     device: GPUDevice,

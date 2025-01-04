@@ -37,13 +37,15 @@ export class ForceDirected {
     public force: number = 1000.0;
     public mortonCodePipeline: GPUComputePipeline;
     public mortonCodeBuffer: GPUBuffer;
-    public energy: number = 0.2;
+    public energy: number = 0.1;
     public theta: number = 0.8;
     public stopForce: boolean = false;
+    clusterSize: number;
 
     constructor(device: GPUDevice) {
         this.device = device;
         this.sorter = new GPUSorter(this.device, 32);
+        this.clusterSize = 4;
 
         this.nodeDataBuffer = this.device.createBuffer({
             size: 16,
@@ -94,7 +96,7 @@ export class ForceDirected {
             layout: 'auto',
             compute: {
                 module: device.createShaderModule({
-                    code: create_tree
+                    code: create_tree.replace(/CHANGEME/g, this.clusterSize.toString())
                 }),
                 entryPoint: "main",
             },
@@ -104,7 +106,7 @@ export class ForceDirected {
             layout: 'auto',
             compute: {
                 module: device.createShaderModule({
-                    code: morton_codes
+                    code: morton_codes.replace(/CHANGEME/g, this.clusterSize.toString())
                 }),
                 entryPoint: "main",
             }
@@ -154,7 +156,7 @@ export class ForceDirected {
             layout: 'auto',
             compute: {
                 module: device.createShaderModule({
-                    code: compute_forcesBH,
+                    code: compute_forcesBH.replace(/CHANGEME/g, this.clusterSize.toString()),
                 }),
                 entryPoint: "main",
             },
@@ -233,7 +235,7 @@ export class ForceDirected {
         mortonCodeBuffer = this.mortonCodeBuffer,
         nodeLength: number = 0, edgeLength: number = 0,
         coolingFactor = this.coolingFactor, l = 0.01,
-        energy: number = 0.2, theta: number = 0.8,
+        energy: number = 0.1, theta: number = 0.8,
         iterationCount = this.iterationCount,
         threshold = this.threshold,
         iterRef: RefObject<HTMLLabelElement>,
@@ -327,7 +329,7 @@ export class ForceDirected {
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         });
         const treeBuffer = this.device.createBuffer({
-            size: Math.ceil(nodeLength * 2.1) * 16 * 4,
+            size: Math.ceil(nodeLength * 2.1) * (12 + Math.max(4, this.clusterSize)) * 4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         });
 
@@ -514,7 +516,7 @@ export class ForceDirected {
                         buffer: rangeBuffer,
                     }
                 },
-                // Sort values buffer filled with indices
+                // Sort values buffer filled with mor
                 {
                     binding: 4,
                     resource: {
@@ -537,7 +539,7 @@ export class ForceDirected {
             size: nodeLength * 4 * 4,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
         });
-        // iterationCount = 2000;
+        // iterationCount = 100;
         let numIterations = 0;
         var totalTime = 0;
         var totalTree = 0;
@@ -555,10 +557,14 @@ export class ForceDirected {
         // });
         // let totalSum = 0;
         // let treeSum = 0;
+        var total_sumsize = 0;
         var start, end;
         const debug = false;
-        const totalStart = performance.now();
+        var totalStart = 0;
         while (iterationCount > 0 && this.coolingFactor > 0.0001 && this.force >= 0) {
+            if (numIterations == 1) {
+                totalStart = performance.now();
+            }
             const frameStart = performance.now();
             numIterations++;
             iterationCount--;
@@ -649,7 +655,7 @@ export class ForceDirected {
             let startTot = performance.now();
             var maxIndex = nodeLength;
             commandEncoder = this.device.createCommandEncoder();
-            for (var i = 0; i < Math.log(nodeLength) / Math.log(4); i++) {
+            for (var i = 0; i < Math.log(nodeLength) / Math.log(this.clusterSize); i++) {
                 // start = performance.now();
                 this.device.queue.writeBuffer(
                     treeInfoBuffer,
@@ -662,11 +668,11 @@ export class ForceDirected {
                 computePassEncoder = commandEncoder.beginComputePass();
                 computePassEncoder.setBindGroup(0, createTreeBindGroup);
                 computePassEncoder.setPipeline(this.createTreePipeline);
-                computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / (64 * 4**(i+1))), 1, 1);
+                computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / (64 * this.clusterSize**(i+1))), 1, 1);
                 computePassEncoder.end();
                 this.device.queue.submit([commandEncoder.finish()]);
                 // await this.device.queue.onSubmittedWorkDone();
-                maxIndex += Math.ceil(nodeLength / 4**(i+1))
+                maxIndex += Math.ceil(nodeLength / this.clusterSize**(i+1))
                 // end = performance.now();
                 // console.log(`Create Tree iter ${i} took ${end - start}ms`)
             }
@@ -682,37 +688,45 @@ export class ForceDirected {
             let endTot = performance.now();
             totalTree += endTot - startTot;
             console.log(`Create Tree took ${endTot - startTot}ms`)
-            // {
-            //     var dbgBuffer = this.device.createBuffer({
-            //         size: treeBuffer.size,
-            //         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-            //     });
+            {
+                // console.log(nodeLength);
+                // var dbgBuffer = this.device.createBuffer({
+                //     size: treeBuffer.size,
+                //     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+                // });
 
-            //     commandEncoder = this.device.createCommandEncoder();
-            //     commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBuffer, 0, dbgBuffer.size);
-            //     this.device.queue.submit([commandEncoder.finish()]);
-            //     await this.device.queue.onSubmittedWorkDone();
+                // commandEncoder = this.device.createCommandEncoder();
+                // commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBuffer, 0, dbgBuffer.size);
+                // this.device.queue.submit([commandEncoder.finish()]);
+                // await this.device.queue.onSubmittedWorkDone();
 
-            //     await dbgBuffer.mapAsync(GPUMapMode.READ);
+                // await dbgBuffer.mapAsync(GPUMapMode.READ);
 
-            //     var debugValsf = new Float32Array(dbgBuffer.getMappedRange());
-            //     console.log(debugValsf);
+                // var debugValsf = new Float32Array(dbgBuffer.getMappedRange());
+                // console.log(debugValsf);
+                // console.log(maxIndex * 16);
+                // var sum_size = 0;
+                // for (var tt = nodeLength * 16 + 16; tt < maxIndex * 16 + 16; tt += 16) {
+                //     sum_size += debugValsf[tt + 2];
+                // }
+                // console.log(sum_size / (maxIndex - nodeLength));
+                // total_sumsize += sum_size / (maxIndex - nodeLength);
+                // dbgBuffer.destroy();
+                // var dbgBufferu = this.device.createBuffer({
+                //     size: treeBuffer.size,
+                //     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+                // });
 
-            //     var dbgBufferu = this.device.createBuffer({
-            //         size: treeBuffer.size,
-            //         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-            //     });
+                // commandEncoder = this.device.createCommandEncoder();
+                // commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBufferu, 0, dbgBuffer.size);
+                // this.device.queue.submit([commandEncoder.finish()]);
+                // await this.device.queue.onSubmittedWorkDone();
 
-            //     commandEncoder = this.device.createCommandEncoder();
-            //     commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBufferu, 0, dbgBuffer.size);
-            //     this.device.queue.submit([commandEncoder.finish()]);
-            //     await this.device.queue.onSubmittedWorkDone();
+                // await dbgBufferu.mapAsync(GPUMapMode.READ);
 
-            //     await dbgBufferu.mapAsync(GPUMapMode.READ);
-
-            //     var debugValsu = new Uint32Array(dbgBufferu.getMappedRange());
-            //     console.log(debugValsu);
-            // }
+                // var debugValsu = new Uint32Array(dbgBufferu.getMappedRange());
+                // console.log(debugValsu);
+            }
 
             commandEncoder = this.device.createCommandEncoder();
             // const commandEncoder = this.device.createCommandEncoder();
@@ -841,6 +855,7 @@ export class ForceDirected {
                 // var debugValsf = new Float32Array(dbgBuffer.getMappedRange());
                 // console.log(debugValsf);
 
+
                 // var dbgBufferu = this.device.createBuffer({
                 //     size: stackBuffer.size,
                 //     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
@@ -945,9 +960,10 @@ export class ForceDirected {
         // let positionList = new Float32Array(positionArrayBuffer);
         await this.device.queue.onSubmittedWorkDone();
         const totalEnd = performance.now();
+        console.log(`Average tree node size: ${total_sumsize / 100}`);
 
         // const iterAvg : number = iterationTimes.reduce(function(a, b) {return a + b}) / iterationTimes.length;
-        iterRef.current!.innerText = `Completed in ${numIterations} iterations with total time ${totalEnd - totalStart} average iteration time ${(totalEnd - totalStart) / numIterations}`;
+        iterRef.current!.innerText = `Completed in ${numIterations} iterations with total time ${totalEnd - totalStart} average iteration time ${(totalEnd - totalStart) / (numIterations - 1)}`;
         // let d3Format = this.formatToD3Format(
         //     positionList,
         //     edgeList,
