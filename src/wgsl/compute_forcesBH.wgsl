@@ -37,30 +37,29 @@ struct TreeNode {
 @group(0) @binding(0) var<storage, read> nodes : array<Node>;
 @group(0) @binding(1) var<storage, read_write> forces : array<f32>;
 @group(0) @binding(2) var<uniform> uniforms : Uniforms;
-@group(0) @binding(3) var<storage, read_write> stack : array<u32>;
-@group(0) @binding(4) var<uniform> tree_info : TreeInfo;
-@group(0) @binding(5) var<storage, read> tree : array<TreeNode>;
+@group(0) @binding(3) var<uniform> tree_info : TreeInfo;
+@group(0) @binding(4) var<storage, read> tree : array<TreeNode>;
 
 @compute @workgroup_size(64, 1, 1)
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
+    var stack = array<u32, 64>();
     let l : f32 = uniforms.ideal_length;
     var index : u32 = global_id.x;
     if (index >= uniforms.nodes_length) {
         return;
     }
     let node = nodes[index];
-    var theta : f32 = 1.0;
+    var theta : f32 = 2.0;
     var r_force : vec2<f32> = vec2<f32>(0.0, 0.0);
     var a_force : vec2<f32> = vec2<f32>(forces[index * 2u], forces[index * 2u + 1u]);
     var tree_idx : u32 = tree_info.max_index;
-    var stack_index : u32 = index * 1000u;
-    var counter : u32 = index * 1000u;
+    var counter : u32 = 0u;
     var out : u32 = 0u;
     loop {
         out = out + 1u;
-        if (out == 1000u) {
-            break;
-        }
+        // if (out == 1000u) {
+        //     break;
+        // }
         var tree_node = tree[tree_idx];
         let dist : f32 = distance(vec2<f32>(node.x, node.y), tree_node.CoM);
         let s : f32 = 2.0 * tree_node.boundary.w;
@@ -86,11 +85,14 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
                 }
             }
         }
-        tree_idx = stack[stack_index];
+        counter--;
+        if (counter < 0u) {
+            break;
+        }
+        tree_idx = stack[counter];
         if (tree_idx == 0u) {
             break;
         } 
-        stack_index = stack_index + 1u;
     }
     var force : vec2<f32> = (a_force + r_force);
     var localForceMag: f32 = length(force); 
