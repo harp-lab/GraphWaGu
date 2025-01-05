@@ -96,7 +96,6 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
       const target = graph.edges[i].target;
       edgeData.push(source, target);
     }
-
     graph.edges.sort(function (a, b) { return (a.source > b.source) ? 1 : ((b.source > a.source) ? -1 : 0); });
     for (let i = 0; i < graph.edges.length; i++) {
       const source = graph.edges[i].source;
@@ -118,57 +117,86 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
     const file = files[0];
     console.log(file);
     if (file.type == "application/xml") {
-      const jsonReader = new FileReader();
-      jsonReader.onload = () => {
-        let i = 0;
-        
-        // Split file content into lines
-        const lines = (jsonReader.result as String).split('\n');
-        let lineIndex = 0;
-        let nodes : Array<any> = [];
-        let edges : Array<any> = [];
-        
-        // Skip comments and get dimensions
-        while (lineIndex < lines.length) {
-            const line = lines[lineIndex].trim();
-            if (!line.startsWith('%')) {
-                // First non-comment line contains matrix dimensions
-                const [rows, cols] = line.split(/\s+/).map(Number);
-                // Create nodes list directly from matrix dimensions
+      const nodes: Array<any> = [];
+      const edges: Array<any> = [];
+      let partialLine = ''; // Store incomplete lines between chunks
+      let headerProcessed = false;
+      let i = 0;
+  
+      try {
+        const stream = file.stream();
+        const reader = stream.getReader();
+        const decoder = new TextDecoder();
+  
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+  
+          // Decode this chunk and prepend any partial line from the previous chunk
+          const text = partialLine + decoder.decode(value, { stream: true });
+          const lines = text.split('\n');
+          
+          // Save the last partial line for the next chunk
+          partialLine = lines.pop() || '';
+  
+          // Process the lines in this chunk
+          for (const line of lines) {
+            const trimmedLine = line.trim();
+            
+            if (!headerProcessed) {
+              // Skip comments and process header
+              if (!trimmedLine.startsWith('%')) {
+                const [rows, cols] = trimmedLine.split(/\s+/).map(Number);
                 const numNodes = Math.max(rows, cols);
-                nodes = Array.from({ length: numNodes }, (_, index) => ({
-                    id: index,
-                    label: index.toString()
-                }));
-                lineIndex++;
-                break;
-            }
-            lineIndex++;
-        }
-        
-        // Process each edge
-        while (lineIndex < lines.length) {
-            const line = lines[lineIndex].trim();
-            if (line) {  // Skip empty lines
-                i++;
-                // if (i % 100000 === 0) {
-                //     console.log(i);
-                // }
+                const chunkSize = 100000;
+                for (let j = 0; j < numNodes; j += chunkSize) {
+                  const end = Math.min(j + chunkSize, numNodes);
+                  nodes.push(...Array.from({ length: end - j }, (_, index) => ({
+                    id: j + index,
+                    label: (j + index).toString()
+                  })));
+                }
                 
-                const values = line.split(/\s+/);
-                const row = parseInt(values[0]) - 1;  // MTX format is 1-based
-                const col = parseInt(values[1]) - 1;
-                
-                edges.push({
-                    source: row,
-                    target: col
-                });
+                headerProcessed = true;
+                console.log(`Created ${nodes.length} nodes`);
+              }
+            } else if (trimmedLine) {
+              // Process edge
+              i++;
+              const values = trimmedLine.split(/\s+/);
+              const row = parseInt(values[0]) - 1;
+              const col = parseInt(values[1]) - 1;
+              
+              edges.push({
+                source: row,
+                target: col
+              });
+  
+              // Optional progress logging
+              if (i % 1000000 === 0) {
+                console.log(`Processed ${i} edges`);
+              }
             }
-            lineIndex++;
+          }
         }
-        this.loadGraph({nodes: nodes, edges: edges} as Graph);
-      };
-      jsonReader.readAsText(files[0]);
+  
+        // Process the final partial line if it contains data
+        if (partialLine.trim()) {
+          const values = partialLine.trim().split(/\s+/);
+          const row = parseInt(values[0]) - 1;
+          const col = parseInt(values[1]) - 1;
+          edges.push({
+            source: row,
+            target: col
+          });
+        }
+  
+        // Load the complete graph
+        this.loadGraph({ nodes, edges } as Graph);
+  
+      } catch (error) {
+        console.error('Error processing file:', error);
+      }
     } else {
       const jsonReader = new FileReader();
       jsonReader.onload = () => {

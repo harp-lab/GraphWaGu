@@ -168,7 +168,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     // Compute Morton code by interleaving bits
     let morton = spread_bits(x_fixed) | (spread_bits(y_fixed) << 1);
     let hilbert = hilbert_xy_to_d(x_fixed, y_fixed);
-    let code = hilbert;
+    let code = morton;
     
     morton_codes[idx] = code;
     // morton_codes[idx] = morton;
