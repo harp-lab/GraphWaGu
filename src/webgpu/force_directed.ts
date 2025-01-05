@@ -504,10 +504,10 @@ export class ForceDirected {
             // console.log(`quad time: ${end - start}`);
             // const commandEncoder = this.device.createCommandEncoder();
 
-            const stackBuffer = this.device.createBuffer({
-                size: nodeLength * 1000 * 4,
-                usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
-            });
+            // const stackBuffer = this.device.createBuffer({
+            //     size: nodeLength * 1000 * 4,
+            //     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+            // });
             // Create BH bindgroup
             const bindGroup = this.device.createBindGroup({
                 layout: this.computeForcesBHPipeline.getBindGroupLayout(0),
@@ -538,12 +538,6 @@ export class ForceDirected {
                     },
                     {
                         binding: 4,
-                        resource: {
-                            buffer: stackBuffer,
-                        },
-                    },
-                    {
-                        binding: 5,
                         resource: {
                             buffer: batchBuffer
                         }
@@ -744,7 +738,7 @@ export class ForceDirected {
             // if (output[11] > 0) {
             //     break;
             // }
-            stackBuffer.destroy();
+            // stackBuffer.destroy();
             this.coolingFactor = this.coolingFactor * coolingFactor;
             requestAnimationFrame(frame);
         }

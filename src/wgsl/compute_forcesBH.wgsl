@@ -49,11 +49,11 @@ struct Batch {
 @group(0) @binding(1) var<storage, read_write> forces : Forces;
 @group(0) @binding(2) var<uniform> uniforms : Uniforms;
 @group(0) @binding(3) var<storage, read> quads : QuadTrees;
-@group(0) @binding(4) var<storage, read_write> stack : Stack;
-@group(0) @binding(5) var<uniform> batch : Batch;
+@group(0) @binding(4) var<uniform> batch : Batch;
 
 @compute @workgroup_size(1, 1, 1)
 fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
+    var stack = array<u32, 64>();
     let l : f32 = uniforms.ideal_length;
     var batch_index : u32 = global_id.x + batch.batch_id * (uniforms.nodes_length / 1u);
     // for (var iter = 0u; iter < 10u; iter = iter + 1u) {
@@ -62,8 +62,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     var r_force : vec2<f32> = vec2<f32>(0.0, 0.0);
     var a_force : vec2<f32> = vec2<f32>(forces.forces[batch_index * 2u], forces.forces[batch_index * 2u + 1u]);
     var index : u32 = 0u;
-    var stack_index : u32 = batch_index * 1000u;
-    var counter : u32 = batch_index * 1000u;
+    var counter : u32 = 0u;
     var out : u32 = 0u;
     loop {
         out = out + 1u;
@@ -90,7 +89,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
                     continue;
                 } else {
                     if (quad.mass > 1.0) {
-                        stack.a[counter] = child;
+                        stack[counter] = child;
                         counter = counter + 1u;
                     } else {
                         let dist : f32 = distance(vec2<f32>(node.x, node.y), quad.CoM);
@@ -102,11 +101,14 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
                 }
             }
         }
-        index = stack.a[stack_index];
+        counter--;
+        if (counter < 0u) {
+            break;
+        }
+        index = stack[counter];
         if (index == 0u) {
             break;
         } 
-        stack_index = stack_index + 1u;
     }
     var force : vec2<f32> = (a_force + r_force);
     var localForceMag: f32 = length(force); 
