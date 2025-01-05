@@ -539,7 +539,6 @@ export class ForceDirected {
             size: nodeLength * 4 * 4,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
         });
-        // iterationCount = 100;
         let numIterations = 0;
         var totalTime = 0;
         var totalTree = 0;
@@ -561,13 +560,12 @@ export class ForceDirected {
         var start, end;
         const debug = false;
         var totalStart = 0;
-        while (iterationCount > 0 && this.coolingFactor > 0.0001 && this.force >= 0) {
+        while (numIterations < iterationCount && this.coolingFactor > 0.0001 && this.force >= 0) {
             if (numIterations == 1) {
                 totalStart = performance.now();
             }
             const frameStart = performance.now();
             numIterations++;
-            iterationCount--;
             // Set up params (node length, edge length)
             const upload = this.device.createBuffer({
                 size: 4 * 4,
@@ -939,8 +937,9 @@ export class ForceDirected {
             // if (output[11] > 0) {
             //     break;
             // }
+            // this.coolingFactor = this.coolingFactor * 0.99;
             this.coolingFactor = this.coolingFactor * 0.9;
-            if (numIterations % 20 == 0) {
+            if (numIterations % 20 == 0 && numIterations < iterationCount - 20) {
                 if (!this.stopForce) {
                     this.coolingFactor = this.energy;
                 }

@@ -5,6 +5,7 @@ import edge_frag from '../wgsl/edge_frag.wgsl?raw';
 import { Controller } from './ez_canvas_controller';
 import { ForceDirected } from './force_directed';
 import { getBuffer } from './utils';
+import { saveAs } from 'file-saver';
 
 class Renderer {
   public device: GPUDevice;
@@ -36,6 +37,10 @@ class Renderer {
   public theta: number = 2;
   canvasRef: any;
   viewExtreme: [number, number, number, number];
+  iterationCount: number = 1000;
+  context: GPUCanvasContext | null = null;
+  edgePositionBuffer: GPUBuffer | null = null;
+  nodePositionBuffer: GPUBuffer | null = null;
 
   constructor(
     device: GPUDevice,
@@ -48,19 +53,21 @@ class Renderer {
     this.viewExtreme = [-1, -1, 2, 2];
     // Check that canvas is active
     if (canvasRef.current === null) return;
-    const context = canvasRef.current.getContext('webgpu')!;
+    this.context = canvasRef.current.getContext('webgpu')!;
 
     const devicePixelRatio = window.devicePixelRatio || 1;
     
     canvasRef.current.width = 800 * devicePixelRatio;
     canvasRef.current.height = 800 * devicePixelRatio;
-    const presentationFormat: GPUTextureFormat = navigator.gpu.getPreferredCanvasFormat();
+    // canvasRef.current.width = 3840;
+    // canvasRef.current.height = 2160;
+    const presentationFormat: GPUTextureFormat = 'rgba8unorm';
     this.canvasSize = [
       canvasRef.current.width,
       canvasRef.current.height
     ];
 
-    context.configure({
+    this.context.configure({
       device,
       format: presentationFormat,
       alphaMode: 'opaque',
@@ -125,10 +132,10 @@ class Renderer {
       -1, 1, 1, -1,
       -1, 1, 1, 1,
     ]);
-    const nodePositionBuffer = getBuffer(device, nodePositionArray, GPUBufferUsage.VERTEX);
+    this.nodePositionBuffer = getBuffer(device, nodePositionArray, GPUBufferUsage.VERTEX);
 
     const edgePositionArray = new Float32Array([0, 0, 1, 1]);
-    const edgePositionBuffer = getBuffer(device, edgePositionArray, GPUBufferUsage.VERTEX);
+    this.edgePositionBuffer = getBuffer(device, edgePositionArray, GPUBufferUsage.VERTEX);
 
     const nodeDataArray = new Float32Array([0.5, 0.5, 0.5, 0.5]);
     this.nodeDataBuffer = getBuffer(device, nodeDataArray, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
@@ -247,7 +254,7 @@ class Renderer {
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
     const view = texture.createView();
-
+    const renderer = this;
     this.frame = async () => {
       // const start = performance.now();
       // Sample is no longer the active page.
@@ -257,7 +264,7 @@ class Renderer {
         colorAttachments: [
           {
             view,
-            resolveTarget: context.getCurrentTexture().createView(),
+            resolveTarget: renderer.context!.getCurrentTexture().createView(),
             clearValue: { r: 1.0, g: 1.0, b: 1.0, a: 1.0 },
             loadOp: 'clear' as GPULoadOp,
             storeOp: "discard" as GPUStoreOp,
@@ -270,13 +277,13 @@ class Renderer {
 
       if (this.edgeToggle) {
         passEncoder.setPipeline(this.edgePipeline!);
-        passEncoder.setVertexBuffer(0, edgePositionBuffer);
+        passEncoder.setVertexBuffer(0, renderer.edgePositionBuffer!);
         passEncoder.setBindGroup(0, this.edgeBindGroup!);
         passEncoder.draw(2, this.edgeLength / 2, 0, 0);
       }
       if (this.nodeToggle) {
         passEncoder.setPipeline(this.nodePipeline!);
-        passEncoder.setVertexBuffer(0, nodePositionBuffer);
+        passEncoder.setVertexBuffer(0, renderer.nodePositionBuffer!);
         passEncoder.setBindGroup(0, this.nodeBindGroup!);
         passEncoder.draw(6, this.nodeLength, 0, 0);
       }
@@ -304,6 +311,116 @@ class Renderer {
 
     this.frame();
   }
+
+  async takeScreenshot() {
+    if (!this.canvasRef.current) return;
+
+    // Get dimensions
+    const width = this.canvasRef.current.width;
+    const height = this.canvasRef.current.height;
+    const bytesPerPixel = 4; // RGBA
+    const bufferSize = width * height * bytesPerPixel;
+
+    // Create output buffer
+    const outputBuffer = this.device.createBuffer({
+        size: bufferSize,
+        usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+    });
+
+    // Create a texture for capturing the frame
+    const captureTexture = this.device.createTexture({
+        size: { width, height, depthOrArrayLayers: 1 },
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
+        sampleCount: 4
+    });
+
+    // Create a resolve texture for the screenshot
+    const resolveTexture = this.device.createTexture({
+      size: { width, height, depthOrArrayLayers: 1 },
+      format: 'rgba8unorm',
+      usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+    });
+
+    // Modify render pass to write to capture texture
+    const renderPassDescriptor: GPURenderPassDescriptor = {
+      colorAttachments: [
+        {
+          view: captureTexture.createView(),
+          resolveTarget: resolveTexture.createView(),
+          clearValue: { r: 1.0, g: 1.0, b: 1.0, a: 1.0 },
+          loadOp: 'clear' as GPULoadOp,
+          storeOp: "discard" as GPUStoreOp,
+        },
+      ],
+    };
+
+    // Create command encoder and render
+    const commandEncoder = this.device.createCommandEncoder();
+    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+
+    // Draw edges
+    if (this.edgeToggle) {
+        passEncoder.setPipeline(this.edgePipeline!);
+        passEncoder.setVertexBuffer(0, this.edgePositionBuffer);
+        passEncoder.setBindGroup(0, this.edgeBindGroup!);
+        passEncoder.draw(2, this.edgeLength / 2, 0, 0);
+    }
+
+    // Draw nodes
+    if (this.nodeToggle) {
+        passEncoder.setPipeline(this.nodePipeline!);
+        passEncoder.setVertexBuffer(0, this.nodePositionBuffer);
+        passEncoder.setBindGroup(0, this.nodeBindGroup!);
+        passEncoder.draw(6, this.nodeLength, 0, 0);
+    }
+
+    passEncoder.end();
+
+    // Copy texture to buffer
+    commandEncoder.copyTextureToBuffer(
+        {
+            texture: resolveTexture,
+            mipLevel: 0,
+            origin: { x: 0, y: 0, z: 0 }
+        },
+        {
+            buffer: outputBuffer,
+            bytesPerRow: width * bytesPerPixel,
+            rowsPerImage: height,
+        },
+        {
+            width: width,
+            height: height,
+            depthOrArrayLayers: 1
+        }
+    );
+
+    // Submit commands and wait for completion
+    this.device.queue.submit([commandEncoder.finish()]);
+    await this.device.queue.onSubmittedWorkDone();
+
+    // Map the buffer and read pixels
+    await outputBuffer.mapAsync(GPUMapMode.READ);
+    const pixelData = new Uint8Array(outputBuffer.getMappedRange());
+
+    // Create canvas and draw pixels
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d')!;
+    const imageData = ctx.createImageData(width, height);
+    imageData.data.set(pixelData);
+    ctx.putImageData(imageData, 0, 0);
+
+    canvas.toBlob(function (b) {
+        saveAs(b!, `out.png`);
+    }, "image/png");
+
+    // Cleanup
+    outputBuffer.unmap();
+    captureTexture.destroy();
+}
 
   setNodeEdgeData(nodeData: Array<number>, edgeData: Array<number>, sourceEdges: Array<number>, targetEdges: Array<number>) {
     // function randn_bm(mean, sigma) {
@@ -432,6 +549,10 @@ class Renderer {
     this.energy = value;
   }
 
+  setIterationCount(value: number) {
+    this.iterationCount = value;
+  }
+
   setTheta(value: number) {
     this.theta = value;
   }
@@ -439,7 +560,7 @@ class Renderer {
   async runForceDirected() {
     this.forceDirected!.runForces(
       this.nodeDataBuffer!, this.edgeDataBuffer!, this.mortonCodeBuffer!, this.nodeLength, this.edgeLength,
-      this.coolingFactor, this.idealLength, this.energy, this.theta, 10000, 100, this.iterRef,
+      this.coolingFactor, this.idealLength, this.energy, this.theta, this.iterationCount, 100, this.iterRef,
       this.sourceEdgeDataBuffer, this.targetEdgeDataBuffer, this.frame!
     );
   }

@@ -74,6 +74,10 @@ class Page extends React.Component<{}, PageState> {
         this.state.renderer!.setCoolingFactor(value);
     }
 
+    setIterationCount(value: number) {
+        this.state.renderer!.setIterationCount(value);
+    }
+
     toggleNodeLayer() {
         this.state.renderer!.toggleNodeLayer();
     }
@@ -88,6 +92,10 @@ class Page extends React.Component<{}, PageState> {
 
     stopForceDirected() {
         this.state.renderer!.stopForceDirected();
+    }
+
+    takeScreenshot() {
+        this.state.renderer!.takeScreenshot();
     }
 
     unmountTutorial() {
@@ -108,10 +116,12 @@ class Page extends React.Component<{}, PageState> {
                                 setEnergy={this.setEnergy.bind(this)}
                                 setTheta={this.setTheta.bind(this)}
                                 setCoolingFactor={this.setCoolingFactor.bind(this)}
+                                setIterationCount={this.setIterationCount.bind(this)}
                                 toggleNodeLayer={this.toggleNodeLayer.bind(this)}
                                 toggleEdgeLayer={this.toggleEdgeLayer.bind(this)}
                                 runForceDirected={this.runForceDirected.bind(this)}
                                 stopForceDirected={this.stopForceDirected.bind(this)}
+                                takeScreenshot={this.takeScreenshot.bind(this)}
                             />
                             <div className="canvasContainer">
                                 <Form.Label className="h1 header">GraphWaGu</Form.Label>

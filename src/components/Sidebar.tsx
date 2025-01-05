@@ -28,10 +28,12 @@ type SidebarProps = {
   setIdealLength: (value: number) => void,
   setTheta: (value: number) => void,
   setEnergy: (value: number) => void,
+  setIterationCount: (value: number) => void,
   toggleNodeLayer: () => void,
   toggleEdgeLayer: () => void,
   runForceDirected: () => void,
   stopForceDirected: () => void,
+  takeScreenshot: () => void,
 }
 type SidebarState = {
   nodeData: Array<number>,
@@ -278,6 +280,18 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
                   onChange={(e) => this.props.setEnergy(parseFloat(e.target.value))}
                 />
               </div>
+
+              <div className="d-flex align-items-center mb-2">
+                <Form.Label className="mb-0 me-2" style={{ width: '120px' }}>Iteration Count:</Form.Label>
+                <Form.Control
+                  type="number"
+                  defaultValue={1000}
+                  min={100}
+                  max={10000}
+                  step={100}
+                  onChange={(e) => this.props.setIterationCount(parseFloat(e.target.value))}
+                />
+              </div>
             </Collapsible>
             <br />
             <Button 
@@ -291,6 +305,11 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
               onClick={() => this.props.stopForceDirected()}
             >
               Stop
+            </Button>
+            <Button 
+              onClick={() => this.props.takeScreenshot()}
+            >
+              Take Screenshot
             </Button>
           </Form>
         </Fragment>
