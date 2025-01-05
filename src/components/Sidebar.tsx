@@ -46,11 +46,6 @@ type edge = {
   source: number,
   target: number
 }
-type node = {
-  name: string | null,
-  x: number | null,
-  y: number | null
-}
 type Graph = {
   nodes: Array<any>,
   edges: Array<edge>
