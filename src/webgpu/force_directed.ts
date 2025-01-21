@@ -271,6 +271,15 @@ export class ForceDirected {
         let mapping = bounding.getMappedRange();
         new Int32Array(mapping).set([0, 1000, 0, 1000]);
         bounding.unmap();
+        const bounding2 = this.device.createBuffer({
+            size: 4 * 4,
+            usage: GPUBufferUsage.COPY_SRC,
+            mappedAtCreation: true,
+        });
+
+        let mapping2 = bounding2.getMappedRange();
+        new Int32Array(mapping2).set([1000, -1000, 1000, -1000]);
+        bounding2.unmap();
         // this.coolingFactor = 2.0;
         let commandEncoder = this.device.createCommandEncoder();
         commandEncoder.copyBufferToBuffer(bounding, 0, rangeBuffer, 0, 4 * 4);
@@ -596,36 +605,39 @@ export class ForceDirected {
             end = performance.now();
             console.log(`Morton codes took ${end - start}ms`)
             // {
-            //     var dbgBuffer = this.device.createBuffer({
-            //         size: treeBuffer.size,
-            //         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-            //     });
+                // var dbgBuffer = this.device.createBuffer({
+                //     size: mortonCodeBuffer.size,
+                //     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+                // });
 
-            //     commandEncoder = this.device.createCommandEncoder();
-            //     commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBuffer, 0, dbgBuffer.size);
-            //     this.device.queue.submit([commandEncoder.finish()]);
-            //     await this.device.queue.onSubmittedWorkDone();
+                // commandEncoder = this.device.createCommandEncoder();
+                // commandEncoder.copyBufferToBuffer(mortonCodeBuffer, 0, dbgBuffer, 0, dbgBuffer.size);
+                // this.device.queue.submit([commandEncoder.finish()]);
+                // await this.device.queue.onSubmittedWorkDone();
 
-            //     await dbgBuffer.mapAsync(GPUMapMode.READ);
+                // await dbgBuffer.mapAsync(GPUMapMode.READ);
 
-            //     var debugValsf = new Float32Array(dbgBuffer.getMappedRange());
-            //     console.log(debugValsf);
+                // var debugValsf = new Float32Array(dbgBuffer.getMappedRange());
+                // console.log(debugValsf);
 
-            //     var dbgBufferu = this.device.createBuffer({
-            //         size: treeBuffer.size,
-            //         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-            //     });
+                // var dbgBufferu = this.device.createBuffer({
+                //     size: mortonCodeBuffer.size,
+                //     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+                // });
 
-            //     commandEncoder = this.device.createCommandEncoder();
-            //     commandEncoder.copyBufferToBuffer(treeBuffer, 0, dbgBufferu, 0, dbgBuffer.size);
-            //     this.device.queue.submit([commandEncoder.finish()]);
-            //     await this.device.queue.onSubmittedWorkDone();
+                // commandEncoder = this.device.createCommandEncoder();
+                // commandEncoder.copyBufferToBuffer(mortonCodeBuffer, 0, dbgBufferu, 0, dbgBufferu.size);
+                // this.device.queue.submit([commandEncoder.finish()]);
+                // await this.device.queue.onSubmittedWorkDone();
 
-            //     await dbgBufferu.mapAsync(GPUMapMode.READ);
+                // await dbgBufferu.mapAsync(GPUMapMode.READ);
 
-            //     var debugValsu = new Uint32Array(dbgBufferu.getMappedRange());
-            //     console.log(debugValsu);
+                // var debugValsu = new Uint32Array(dbgBufferu.getMappedRange());
+                // console.log(debugValsu);
             // }
+            if (iterationCount == 2) {
+                return;
+            }
 
             start = performance.now();
             const sortEncoder = this.device.createCommandEncoder();
@@ -871,7 +883,7 @@ export class ForceDirected {
             }
 
             commandEncoder = this.device.createCommandEncoder();
-            commandEncoder.copyBufferToBuffer(bounding, 0, rangeBuffer, 0, 4 * 4);
+            commandEncoder.copyBufferToBuffer(bounding2, 0, rangeBuffer, 0, 4 * 4);
 
             start = performance.now();
             computePassEncoder = commandEncoder.beginComputePass();
