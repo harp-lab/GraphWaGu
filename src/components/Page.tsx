@@ -54,8 +54,8 @@ class Page extends React.Component<{}, PageState> {
         });
     }
 
-    setNodeEdgeData(nodeData: Array<number>, edgeData: Array<number>, sourceEdges: Array<number>, targetEdges: Array<number>) {
-        this.state.renderer!.setNodeEdgeData(nodeData, edgeData, sourceEdges, targetEdges);
+    setNodeEdgeData(nodeData: Array<number>, edgeData: Array<number>, sourceEdges: Array<number>, targetEdges: Array<number>, nodeColors: Array<number>) {
+        this.state.renderer!.setNodeEdgeData(nodeData, edgeData, sourceEdges, targetEdges, nodeColors);
     }
 
     setIdealLength(value: number) {

@@ -27,20 +27,21 @@ class Renderer {
   public nodeToggle: boolean = true;
   public edgeToggle: boolean = true;
   public canvasSize: [number, number] | null = null;
-  public idealLength: number = 0.005;
+  public idealLength: number = 0.001;
   public coolingFactor: number = 0.985;
   public iterRef: React.RefObject<HTMLLabelElement>;
   public frame: (() => void) | undefined;
   public edgeList: Array<number> = [];
   public mortonCodeBuffer: GPUBuffer | null = null;
-  public energy: number = 0.1;
-  public theta: number = 2;
+  public energy: number = 0.002;
+  public theta: number = 8;
   canvasRef: any;
   viewExtreme: [number, number, number, number];
-  iterationCount: number = 1000;
+  iterationCount: number = 40000;
   context: GPUCanvasContext | null = null;
   edgePositionBuffer: GPUBuffer | null = null;
   nodePositionBuffer: GPUBuffer | null = null;
+  nodeColorBuffer: GPUBuffer | null = null;
 
   constructor(
     device: GPUDevice,
@@ -147,6 +148,13 @@ class Renderer {
     let mortonCode = [0];
     new Float32Array(this.mortonCodeBuffer.getMappedRange()).set(mortonCode);
     this.mortonCodeBuffer.unmap();
+    this.nodeColorBuffer = device.createBuffer({
+      size: 4 * 4,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
+      mappedAtCreation: true
+    });
+    new Float32Array(this.nodeColorBuffer.getMappedRange()).set(mortonCode);
+    this.nodeColorBuffer.unmap();
 
 
     this.nodePipeline = device.createRenderPipeline({
@@ -218,6 +226,12 @@ class Renderer {
           binding: 2,
           resource: {
             buffer: this.mortonCodeBuffer,
+          }
+        },
+        {
+          binding: 3,
+          resource: {
+            buffer: this.nodeColorBuffer,
           }
         }
       ],
@@ -422,7 +436,7 @@ class Renderer {
     captureTexture.destroy();
 }
 
-  setNodeEdgeData(nodeData: Array<number>, edgeData: Array<number>, sourceEdges: Array<number>, targetEdges: Array<number>) {
+  setNodeEdgeData(nodeData: Array<number>, edgeData: Array<number>, sourceEdges: Array<number>, targetEdges: Array<number>, nodeColors: Array<number>) {
     // function randn_bm(mean, sigma) {
     //   const u = 0, v = 0;
     //   while(u === 0) u = Math.random(); //Converting [0,1) to (0,1)
@@ -450,6 +464,7 @@ class Renderer {
     // }
     // console.log("nodes length" + nodeData.length / 4);
     // console.log("edges_length" + edgeData.length / 2);
+    console.log(nodeColors);
     this.edgeList = edgeData;
     this.nodeDataBuffer = this.device.createBuffer({
       size: nodeData.length * 4,
@@ -458,6 +473,13 @@ class Renderer {
     });
     new Float32Array(this.nodeDataBuffer.getMappedRange()).set(nodeData);
     this.nodeDataBuffer.unmap();
+    this.nodeColorBuffer = this.device.createBuffer({
+      size: nodeColors.length * 4,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+      mappedAtCreation: true,
+    });
+    new Float32Array(this.nodeColorBuffer.getMappedRange()).set(nodeColors);
+    this.nodeColorBuffer.unmap();
     this.mortonCodeBuffer = this.device.createBuffer({
       size: nodeData.length,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
@@ -511,6 +533,12 @@ class Renderer {
           binding: 2,
           resource: {
             buffer: this.mortonCodeBuffer!,
+          }
+        },
+        {
+          binding: 3,
+          resource: {
+            buffer: this.nodeColorBuffer!,
           }
         }
       ],

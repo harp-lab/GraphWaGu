@@ -23,6 +23,7 @@ struct Edges {
 @group(0) @binding(0) var<uniform> uniforms : Uniforms;
 @group(0) @binding(1) var<storage, read> nodes : Nodes;
 @group(0) @binding(2) var<storage, read> morton_codes : array<u32>;
+@group(0) @binding(3) var<storage, read> node_colors : array<vec4<f32>>;
 
 fn u32_to_color(value: u32) -> vec3<f32> {
     // First convert u32 to f32 in [0,1] range
@@ -64,7 +65,7 @@ fn u32_to_color(value: u32) -> vec3<f32> {
 fn main(@builtin(instance_index) index : u32, @location(0) position : vec2<f32>)
      -> VertexOutput {
     var node_center : vec2<f32> = 2.0 * vec2<f32>(nodes.nodes[index].x, nodes.nodes[index].y) - vec2<f32>(1.0);
-    var translation : vec2<f32> = position * 0.01;
+    var translation : vec2<f32> = position * 0.05;
     var out_position : vec2<f32> = node_center + translation;
     var output : VertexOutput;
     var inv_zoom : f32 = uniforms.view_box.z - uniforms.view_box.x;
@@ -77,7 +78,13 @@ fn main(@builtin(instance_index) index : u32, @location(0) position : vec2<f32>)
     output.position = out_position;
     // flat interpolated position will give bottom right corner, so translate to center
     output.center = node_center;
-    let test = morton_codes[index];
-    output.color = u32_to_color(test);
+    var color = u32_to_color(morton_codes[index]);
+    if (true) {
+        color = node_colors[index].xyz;
+        // if (all(color.xyz == vec3<f32>(0))) {
+        //     color = vec3<f32>(1.0);
+        // }
+    }
+    output.color = color;
     return output;
 }

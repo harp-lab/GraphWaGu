@@ -23,7 +23,7 @@ const datasets = {
 
 
 type SidebarProps = {
-  setNodeEdgeData: (nodeData: Array<number>, edgeData: Array<number>, sourceEdges: Array<number>, targetEdges: Array<number>) => void,
+  setNodeEdgeData: (nodeData: Array<number>, edgeData: Array<number>, sourceEdges: Array<number>, targetEdges: Array<number>, nodeColors: Array<number>) => void,
   setCoolingFactor: (value: number) => void,
   setIdealLength: (value: number) => void,
   setTheta: (value: number) => void,
@@ -40,6 +40,7 @@ type SidebarState = {
   edgeData: Array<number>,
   sourceEdges: Array<number>,
   targetEdges: Array<number>,
+  nodeColors: Array<number>,
   adjacencyMatrix: Array<Array<number>>,
 }
 type edge = {
@@ -55,7 +56,7 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
     super(props);
     this.state = {
       nodeData: [], edgeData: [], sourceEdges: [], targetEdges: [],
-      adjacencyMatrix: []
+      nodeColors: [], adjacencyMatrix: []
     };
 
     this.handleSubmit = this.handleSubmit.bind(this);
@@ -65,7 +66,8 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
 
   handleSubmit(event: { preventDefault: () => void; }) {
     event.preventDefault();
-    this.props.setNodeEdgeData(this.state.nodeData, this.state.edgeData, this.state.sourceEdges, this.state.targetEdges);
+    console.log(this.state.nodeColors);
+    this.props.setNodeEdgeData(this.state.nodeData, this.state.edgeData, this.state.sourceEdges, this.state.targetEdges, this.state.nodeColors);
   }
 
   loadGraph(graph: Graph) {
@@ -73,7 +75,7 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
     const edgeData: Array<number> = [];
     const sourceEdges: Array<number> = [];
     const targetEdges: Array<number> = [];
-
+    const colors: Array<number> = [];
       
     for (let i = 0; i < graph.nodes.length; i++) {
       if (graph.nodes[i].x) {
@@ -85,6 +87,9 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
           , Math.random() 
           * Math.max(1, (graph.nodes.length / 100000))
           , 1.0);
+      }
+      if (graph.nodes[i].color) {
+        colors.push(...graph.nodes[i].color);
       }
     }
     console.log(nodeData);
@@ -106,7 +111,7 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
       targetEdges.push(source, target);
     }
     console.log(graph.edges);
-    this.setState({ nodeData: nodeData, edgeData: edgeData, sourceEdges: sourceEdges, targetEdges: targetEdges });
+    this.setState({ nodeData: nodeData, edgeData: edgeData, sourceEdges: sourceEdges, targetEdges: targetEdges, nodeColors: colors });
   }
 
   async readJson(event: React.ChangeEvent<HTMLInputElement>) {
@@ -232,7 +237,7 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
                 <Form.Label className="mb-0 me-2" style={{ width: '120px' }}>Ideal Length:</Form.Label>
                 <Form.Control
                   type="number"
-                  defaultValue={0.005}
+                  defaultValue={0.001}
                   min={0.0001}
                   max={0.05}
                   step={0.0001}
@@ -256,7 +261,7 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
                 <Form.Label className="mb-0 me-2" style={{ width: '120px' }}>Theta:</Form.Label>
                 <Form.Control
                   type="number"
-                  defaultValue={2}
+                  defaultValue={8}
                   min={0.5}
                   max={32.0}
                   step={0.1}
@@ -268,10 +273,10 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
                 <Form.Label className="mb-0 me-2" style={{ width: '120px' }}>Energy:</Form.Label>
                 <Form.Control
                   type="number"
-                  defaultValue={0.1}
-                  min={0.01}
+                  defaultValue={0.002}
+                  min={0.001}
                   max={2.0}
-                  step={0.01}
+                  step={0.001}
                   onChange={(e) => this.props.setEnergy(parseFloat(e.target.value))}
                 />
               </div>
@@ -280,9 +285,9 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
                 <Form.Label className="mb-0 me-2" style={{ width: '120px' }}>Iteration Count:</Form.Label>
                 <Form.Control
                   type="number"
-                  defaultValue={1000}
+                  defaultValue={40000}
                   min={100}
-                  max={10000}
+                  max={100000}
                   step={100}
                   onChange={(e) => this.props.setIterationCount(parseFloat(e.target.value))}
                 />

@@ -569,7 +569,7 @@ export class ForceDirected {
         var start, end;
         const debug = false;
         var totalStart = 0;
-        while (numIterations < iterationCount && this.coolingFactor > 0.0001 && this.force >= 0) {
+        while (numIterations < iterationCount && this.coolingFactor > 0.00001 && this.force >= 0) {
             if (numIterations == 1) {
                 totalStart = performance.now();
             }
@@ -949,19 +949,19 @@ export class ForceDirected {
             // if (output[11] > 0) {
             //     break;
             // }
-            // this.coolingFactor = this.coolingFactor * 0.99;
+            // this.coolingFactor = this.coolingFactor * coolingFactor;
             this.coolingFactor = this.coolingFactor * 0.9;
             if (numIterations % 20 == 0 && numIterations < iterationCount - 20) {
                 if (!this.stopForce) {
                     this.coolingFactor = this.energy;
                 }
             }
-            iterRef.current!.innerText = `Iteration ${numIterations}`;
+            // iterRef.current!.innerText = `Iteration ${numIterations}`;
             if (debug) {await this.device.queue.onSubmittedWorkDone();}
             const frameEnd = performance.now();
             console.log(`Total frame time: ${frameEnd - frameStart}`);
             totalTime += frameEnd - frameStart;
-            if (numIterations % 10 == 0) {
+            if (numIterations % 20 == 0) {
                 requestAnimationFrame(frame);
                 await this.device.queue.onSubmittedWorkDone();
             }
@@ -974,7 +974,7 @@ export class ForceDirected {
         console.log(`Average tree node size: ${total_sumsize / 100}`);
 
         // const iterAvg : number = iterationTimes.reduce(function(a, b) {return a + b}) / iterationTimes.length;
-        iterRef.current!.innerText = `Completed in ${numIterations} iterations with total time ${totalEnd - totalStart} average iteration time ${(totalEnd - totalStart) / (numIterations - 1)}`;
+        // iterRef.current!.innerText = `Completed in ${numIterations} iterations with total time ${totalEnd - totalStart} average iteration time ${(totalEnd - totalStart) / (numIterations - 1)}`;
         // let d3Format = this.formatToD3Format(
         //     positionList,
         //     edgeList,
