@@ -293,7 +293,7 @@ class Sidebar extends React.Component<SidebarProps, SidebarState> {
               className="me-2" 
               onClick={() => this.props.runForceDirected()}
             >
-              Run Force Directed Layout
+              Run Force Directed Layout (Must Submit First!)
             </Button>
             <Button 
               variant="danger" 
