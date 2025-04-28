@@ -16,4 +16,4 @@ pnpm run dev
 The project will then be hosted on localhost:3000 and can be visited by a browser compatible with WebGPU. If you are using Chrome, enable the setting at chrome://flags/#enable-unsafe-webgpu. If you are using Safari, first enable the Developer Menu (Preferences > Advanced), then check Develop > Experimental Features > WebGPU.
 
 ## Contact
-If you have questions or comments, feel free to contact me (Landon Dyken) at `ldyken53@uab.edu`.
+If you have questions or comments, feel free to contact me (Landon Dyken) at `ldyke@uic.edu`.
