@@ -1,6 +1,7 @@
 {
   "name": "GraphWaGu",
   "version": "0.1.0",
+  "main": "./dist/graphwagu.mjs",
   "private": true,
   "dependencies": {
     "@types/file-saver": "^2.0.7",
@@ -17,10 +18,13 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build --mode html",
+    "build-html": "tsc && vite build --mode html",
+    "build-lib": "tsc && vite build --mode lib",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "deploy": "pnpm run build && sh deploy.sh"
+    "deploy": "pnpm run build-html && sh deploy.sh",
+    "prepublishOnly": "pnpm run build-lib"
   },
   "devDependencies": {
     "@vitejs/plugin-react-swc": "^3.3.2",
