@@ -1,11 +1,6 @@
-import { RefObject } from 'react';
 import {apply_forces} from './wgsl-shaders';
-import {create_adjacency_matrix} from './wgsl-shaders';
-// import create_quadtree from '../wgsl/create_quadtree.wgsl?raw';
 import {create_targetlist} from './wgsl-shaders';
 import {create_sourcelist} from './wgsl-shaders';
-import {compute_attract_forces} from './wgsl-shaders';
-import {compute_forces} from './wgsl-shaders';
 import {compute_forcesBH} from './wgsl-shaders';
 import {compute_attractive_new} from './wgsl-shaders';
 import {morton_codes} from './wgsl-shaders';
@@ -17,35 +12,35 @@ export class ForceDirected {
     public paramsBuffer: GPUBuffer;
     public nodeDataBuffer: GPUBuffer;
     public edgeDataBuffer: GPUBuffer;
-    public adjMatrixBuffer: GPUBuffer;
-    public laplacianBuffer: GPUBuffer;
-    public quadTreeBuffer: GPUBuffer;
     public forceDataBuffer: GPUBuffer;
     public coolingFactor: number = 0.985;
     public device: GPUDevice;
-    public createMatrixPipeline: GPUComputePipeline;
     public createTreePipeline: GPUComputePipeline;
     public createSourceListPipeline: GPUComputePipeline;
     public createTargetListPipeline: GPUComputePipeline;
-    public computeAttractiveNewPipeline: GPUComputePipeline;
-    public computeForcesPipeline: GPUComputePipeline;
+    public computeAttractivePipeline: GPUComputePipeline;
     public computeForcesBHPipeline: GPUComputePipeline;
-    public computeAttractForcesPipeline: GPUComputePipeline;
     public applyForcesPipeline: GPUComputePipeline;
     public iterationCount: number = 10000;
-    public threshold: number = 100;
     public force: number = 1000.0;
     public mortonCodePipeline: GPUComputePipeline;
     public mortonCodeBuffer: GPUBuffer;
     public energy: number = 0.1;
-    public theta: number = 0.8;
+    public theta: number = 2;
+    public l: number = 0.01;
     public stopForce: boolean = false;
     clusterSize: number;
+    public nodeLength: number;
+    public edgeLength: number;
+    sourceEdgeDataBuffer: GPUBuffer;
+    targetEdgeDataBuffer: GPUBuffer;
 
     constructor(device: GPUDevice) {
         this.device = device;
         this.sorter = new GPUSorter(this.device, 32);
         this.clusterSize = 4;
+        this.nodeLength = 0;
+        this.edgeLength = 0;
 
         this.nodeDataBuffer = this.device.createBuffer({
             size: 16,
@@ -62,34 +57,19 @@ export class ForceDirected {
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         });
 
-        this.adjMatrixBuffer = this.device.createBuffer({
+        this.sourceEdgeDataBuffer = this.device.createBuffer({
             size: 16,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         });
 
-        this.laplacianBuffer = this.device.createBuffer({
+        this.targetEdgeDataBuffer = this.device.createBuffer({
             size: 16,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-        });
-
-        this.quadTreeBuffer = this.device.createBuffer({
-            size: 16,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         });
 
         this.forceDataBuffer = this.device.createBuffer({
             size: 16,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
-        });
-
-        this.createMatrixPipeline = device.createComputePipeline({
-            layout: 'auto',
-            compute: {
-                module: device.createShaderModule({
-                    code: create_adjacency_matrix
-                }),
-                entryPoint: "main",
-            },
         });
 
         this.createTreePipeline = device.createComputePipeline({
@@ -132,21 +112,11 @@ export class ForceDirected {
             },
         });
 
-        this.computeAttractiveNewPipeline = device.createComputePipeline({
+        this.computeAttractivePipeline = device.createComputePipeline({
             layout: 'auto',
             compute: {
                 module: device.createShaderModule({
                     code: compute_attractive_new
-                }),
-                entryPoint: "main",
-            },
-        });
-
-        this.computeForcesPipeline = device.createComputePipeline({
-            layout: 'auto',
-            compute: {
-                module: device.createShaderModule({
-                    code: compute_forces,
                 }),
                 entryPoint: "main",
             },
@@ -157,16 +127,6 @@ export class ForceDirected {
             compute: {
                 module: device.createShaderModule({
                     code: compute_forcesBH.replace(/CHANGEME/g, this.clusterSize.toString()),
-                }),
-                entryPoint: "main",
-            },
-        });
-
-        this.computeAttractForcesPipeline = device.createComputePipeline({
-            layout: 'auto',
-            compute: {
-                module: device.createShaderModule({
-                    code: compute_attract_forces,
                 }),
                 entryPoint: "main",
             },
@@ -187,6 +147,10 @@ export class ForceDirected {
             size: 4 * 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
+    }
+
+    stopForces() {
+        this.stopForce = true;
     }
 
     formatToD3Format(positionList: number[], edgeList: number[], nLength: number, eLength: number) {
@@ -225,39 +189,77 @@ export class ForceDirected {
         return { nodeArray, edgeArray }
     }
 
-    stopForces() {
-        this.stopForce = true;
+    setNodeEdgeData(nodes : number[], edges : number[]) {
+        this.nodeLength = nodes.length / 4;
+        this.edgeLength = edges.length;
+        this.nodeDataBuffer = this.device.createBuffer({
+            size: nodes.length * 4,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+            mappedAtCreation: true,
+        });
+        new Float32Array(this.nodeDataBuffer.getMappedRange()).set(nodes);
+        this.nodeDataBuffer.unmap();
+        this.mortonCodeBuffer = this.device.createBuffer({
+            size: nodes.length,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+        });
+        this.edgeDataBuffer = this.device.createBuffer({
+            size: edges.length * 4,
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
+            mappedAtCreation: true
+        });
+        new Uint32Array(this.edgeDataBuffer.getMappedRange()).set(edges);
+        this.edgeDataBuffer.unmap();
+        type edge = {
+            source: number,
+            target: number
+        }
+        const edges2: Array<edge> = [];
+        for (let i = 0; i < edges.length; i += 2) {
+            edges2.push({source: edges[i], target: edges[i + 1]});
+        }
+        const sortedBySource = edges2
+            .sort((a, b) => a.source - b.source)
+            .flatMap(edge => [edge.source, edge.target]);
+        const sortedByTarget = edges2
+            .slice()
+            .sort((a, b) => a.target - b.target)
+            .flatMap(edge => [edge.source, edge.target]);
+        console.log(sortedBySource);
+        console.log(sortedByTarget);
+        this.sourceEdgeDataBuffer = this.device.createBuffer({
+            size: sortedBySource.length * 4,
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
+            mappedAtCreation: true
+        });
+        new Uint32Array(this.sourceEdgeDataBuffer.getMappedRange()).set(sortedBySource);
+        this.sourceEdgeDataBuffer.unmap();
+        this.targetEdgeDataBuffer = this.device.createBuffer({
+            size: sortedByTarget.length * 4,
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
+            mappedAtCreation: true
+        });
+        new Uint32Array(this.targetEdgeDataBuffer.getMappedRange()).set(sortedByTarget);
+        this.targetEdgeDataBuffer.unmap();
     }
 
     async runForces(
-        nodeDataBuffer = this.nodeDataBuffer,
-        edgeDataBuffer = this.edgeDataBuffer,
-        mortonCodeBuffer = this.mortonCodeBuffer,
-        nodeLength: number = 0, edgeLength: number = 0,
-        coolingFactor = this.coolingFactor, l = 0.01,
-        energy: number = 0.1, theta: number = 0.8,
+        coolingFactor = this.coolingFactor, l = this.l,
+        energy: number = this.energy, theta: number = this.theta,
         iterationCount = this.iterationCount,
-        threshold = this.threshold,
-        iterRef: RefObject<HTMLLabelElement>,
-        sourceEdgeBuffer: GPUBuffer | null,
-        targetEdgeBuffer: GPUBuffer | null,
-        frame: FrameRequestCallback,
     ) {
         this.stopForce = false;
         // coolingFactor = 0.995;
         // l = 0.01;
-        if (nodeLength === 0 || edgeLength === 0 || nodeDataBuffer === null || edgeDataBuffer === null) {
-            alert("No data to run");
+        if (this.nodeLength === 0 || this.edgeLength === 0 || this.nodeDataBuffer === null || this.edgeDataBuffer === null) {
+            console.log("No data to run");
             return;
         }
+        this.l = l;
         this.energy = energy;
         this.theta = theta;
         this.coolingFactor = coolingFactor;
-        this.nodeDataBuffer = nodeDataBuffer;
-        this.mortonCodeBuffer = mortonCodeBuffer;
-        this.edgeDataBuffer = edgeDataBuffer;
-        this.threshold = threshold;
-        this.force = 100000;
+        this.iterationCount = iterationCount;
         const rangeBuffer = this.device.createBuffer({
             size: 4 * 4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
@@ -285,7 +287,7 @@ export class ForceDirected {
         commandEncoder.copyBufferToBuffer(bounding, 0, rangeBuffer, 0, 4 * 4);
         this.device.queue.submit([commandEncoder.finish()]);
     
-        const sortBuffers = this.sorter.createSortBuffers(nodeLength);
+        const sortBuffers = this.sorter.createSortBuffers(this.nodeLength);
 
         // Set up params (node length, edge length) for creating adjacency matrix
         const uploadBuffer = this.device.createBuffer({
@@ -294,7 +296,7 @@ export class ForceDirected {
             mappedAtCreation: true,
         });
         mapping = uploadBuffer.getMappedRange();
-        new Uint32Array(mapping).set([nodeLength, edgeLength]);
+        new Uint32Array(mapping).set([this.nodeLength, this.edgeLength]);
         new Float32Array(mapping).set([this.coolingFactor, l], 2);
         uploadBuffer.unmap();
 
@@ -317,28 +319,23 @@ export class ForceDirected {
         );
 
         this.forceDataBuffer = this.device.createBuffer({
-            size: nodeLength * 2 * 4,
+            size: this.nodeLength * 2 * 4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
         });
-        const quadTreeLength = nodeLength * 12 * 4 * 4;
-        this.quadTreeBuffer = this.device.createBuffer({
-            size: quadTreeLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
-        });
         const sourceListBuffer = this.device.createBuffer({
-            size: edgeLength * 2,
+            size: this.edgeLength * 2,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         });
         const targetListBuffer = this.device.createBuffer({
-            size: edgeLength * 2,
+            size: this.edgeLength * 2,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         });
         const edgeInfoBuffer = this.device.createBuffer({
-            size: nodeLength * 4 * 4,
+            size: this.nodeLength * 4 * 4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         });
         const treeBuffer = this.device.createBuffer({
-            size: Math.ceil(nodeLength * 2.1) * (12 + Math.max(4, this.clusterSize)) * 4,
+            size: Math.ceil(this.nodeLength * 2.1) * (12 + Math.max(4, this.clusterSize)) * 4,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         });
 
@@ -348,7 +345,7 @@ export class ForceDirected {
                 {
                     binding: 0,
                     resource: {
-                        buffer: sourceEdgeBuffer!,
+                        buffer: this.sourceEdgeDataBuffer!,
                     }
                 },
                 {
@@ -378,7 +375,7 @@ export class ForceDirected {
                 {
                     binding: 0,
                     resource: {
-                        buffer: targetEdgeBuffer!,
+                        buffer: this.targetEdgeDataBuffer,
                     }
                 },
                 {
@@ -413,7 +410,7 @@ export class ForceDirected {
         computePassEncoder.dispatchWorkgroups(1, 1, 1);
         computePassEncoder.end();
         const gpuReadBuffer = this.device.createBuffer({
-            size: nodeLength * 4 * 4,
+            size: this.nodeLength * 4 * 4,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
         });
         commandEncoder.copyBufferToBuffer(
@@ -421,7 +418,7 @@ export class ForceDirected {
             0 /* source offset */,
             gpuReadBuffer /* destination buffer */,
             0 /* destination offset */,
-            nodeLength * 4 * 4 /* size */
+            this.nodeLength * 4 * 4 /* size */
         );
         this.device.queue.submit([commandEncoder.finish()]);
         // await this.device.queue.onSubmittedWorkDone();
@@ -545,31 +542,16 @@ export class ForceDirected {
         //     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
         // });
         let positionReadBuffer = this.device.createBuffer({
-            size: nodeLength * 4 * 4,
+            size: this.nodeLength * 4 * 4,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
         });
         let numIterations = 0;
         var totalTime = 0;
         var totalTree = 0;
-        // const querySet = this.device.createQuerySet({
-        //     type: "timestamp",
-        //     count: 10,
-        // });
-        // const queryBuffer = this.device.createBuffer({
-        //     size: 8,
-        //     usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC,
-        // });
-        // const readQueryBuffer = this.device.createBuffer({
-        //     size: 8,
-        //     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-        // });
-        // let totalSum = 0;
-        // let treeSum = 0;
-        var total_sumsize = 0;
         var start, end;
         const debug = false;
         var totalStart = 0;
-        while (numIterations < iterationCount && this.coolingFactor > 0.0001 && this.force >= 0) {
+        while (numIterations < iterationCount && this.coolingFactor > 0.0001) {
             if (numIterations == 1) {
                 totalStart = performance.now();
             }
@@ -582,14 +564,13 @@ export class ForceDirected {
                 mappedAtCreation: true,
             });
             const mapping = upload.getMappedRange();
-            new Uint32Array(mapping).set([nodeLength, edgeLength]);
+            new Uint32Array(mapping).set([this.nodeLength, this.edgeLength]);
             new Float32Array(mapping).set([this.coolingFactor, l], 2);
             upload.unmap();
             //this.device.createQuerySet({})
             let commandEncoder = this.device.createCommandEncoder();
             //commandEncoder.writeTimestamp();
             commandEncoder.copyBufferToBuffer(upload, 0, this.paramsBuffer, 0, 4 * 4);
-            // commandEncoder.copyBufferToBuffer(clearBuffer, 0, this.quadTreeBuffer, 0, quadTreeLength);
             this.device.queue.submit([commandEncoder.finish()]);
             if (debug) {await this.device.queue.onSubmittedWorkDone();}
             start = performance.now();
@@ -597,21 +578,21 @@ export class ForceDirected {
             let computePassEncoder = commandEncoder.beginComputePass();
             computePassEncoder.setBindGroup(0, mortonCodeBindGroup);
             computePassEncoder.setPipeline(this.mortonCodePipeline);
-            computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / 128), 1, 1);
+            computePassEncoder.dispatchWorkgroups(Math.ceil(this.nodeLength / 128), 1, 1);
             computePassEncoder.end();
             commandEncoder.copyBufferToBuffer(this.mortonCodeBuffer, 0, sortBuffers.keys, 0, this.mortonCodeBuffer.size);
             this.device.queue.submit([commandEncoder.finish()]);
             if (debug) {await this.device.queue.onSubmittedWorkDone();}
             end = performance.now();
             console.log(`Morton codes took ${end - start}ms`)
-            // {
+            {
                 // var dbgBuffer = this.device.createBuffer({
-                //     size: mortonCodeBuffer.size,
+                //     size: this.mortonCodeBuffer.size,
                 //     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
                 // });
 
                 // commandEncoder = this.device.createCommandEncoder();
-                // commandEncoder.copyBufferToBuffer(mortonCodeBuffer, 0, dbgBuffer, 0, dbgBuffer.size);
+                // commandEncoder.copyBufferToBuffer(this.mortonCodeBuffer, 0, dbgBuffer, 0, dbgBuffer.size);
                 // this.device.queue.submit([commandEncoder.finish()]);
                 // await this.device.queue.onSubmittedWorkDone();
 
@@ -620,23 +601,20 @@ export class ForceDirected {
                 // var debugValsf = new Float32Array(dbgBuffer.getMappedRange());
                 // console.log(debugValsf);
 
-                // var dbgBufferu = this.device.createBuffer({
-                //     size: mortonCodeBuffer.size,
-                //     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-                // });
+                var dbgBufferu = this.device.createBuffer({
+                    size: this.mortonCodeBuffer.size,
+                    usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+                });
 
-                // commandEncoder = this.device.createCommandEncoder();
-                // commandEncoder.copyBufferToBuffer(mortonCodeBuffer, 0, dbgBufferu, 0, dbgBufferu.size);
-                // this.device.queue.submit([commandEncoder.finish()]);
-                // await this.device.queue.onSubmittedWorkDone();
+                commandEncoder = this.device.createCommandEncoder();
+                commandEncoder.copyBufferToBuffer(this.mortonCodeBuffer, 0, dbgBufferu, 0, dbgBufferu.size);
+                this.device.queue.submit([commandEncoder.finish()]);
+                await this.device.queue.onSubmittedWorkDone();
 
-                // await dbgBufferu.mapAsync(GPUMapMode.READ);
+                await dbgBufferu.mapAsync(GPUMapMode.READ);
 
-                // var debugValsu = new Uint32Array(dbgBufferu.getMappedRange());
-                // console.log(debugValsu);
-            // }
-            if (iterationCount == 2) {
-                return;
+                var debugValsu = new Uint32Array(dbgBufferu.getMappedRange());
+                console.log(debugValsu);
             }
 
             start = performance.now();
@@ -646,26 +624,26 @@ export class ForceDirected {
             if (debug) {await this.device.queue.onSubmittedWorkDone();}
             end = performance.now();
             console.log(`Sort took ${end - start} ms`);
-            // {
-            //     var dbgBuffer = this.device.createBuffer({
-            //         size: sortBuffers.keys.size,
-            //         usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-            //     });
+            {
+                var dbgBuffer = this.device.createBuffer({
+                    size: sortBuffers.keys.size,
+                    usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
+                });
 
-            //     commandEncoder = this.device.createCommandEncoder();
-            //     commandEncoder.copyBufferToBuffer(sortBuffers.keys, 0, dbgBuffer, 0, dbgBuffer.size);
-            //     this.device.queue.submit([commandEncoder.finish()]);
-            //     await this.device.queue.onSubmittedWorkDone();
+                commandEncoder = this.device.createCommandEncoder();
+                commandEncoder.copyBufferToBuffer(sortBuffers.keys, 0, dbgBuffer, 0, dbgBuffer.size);
+                this.device.queue.submit([commandEncoder.finish()]);
+                await this.device.queue.onSubmittedWorkDone();
 
-            //     await dbgBuffer.mapAsync(GPUMapMode.READ);
+                await dbgBuffer.mapAsync(GPUMapMode.READ);
 
-            //     var debugValsu = new Uint32Array(dbgBuffer.getMappedRange());
-            //     console.log(debugValsu);
-            // }
+                var debugValsu = new Uint32Array(dbgBuffer.getMappedRange());
+                console.log(debugValsu);
+            }
             let startTot = performance.now();
-            var maxIndex = nodeLength;
+            var maxIndex = this.nodeLength;
             commandEncoder = this.device.createCommandEncoder();
-            for (var i = 0; i < Math.log(nodeLength) / Math.log(this.clusterSize); i++) {
+            for (var i = 0; i < Math.log(this.nodeLength) / Math.log(this.clusterSize); i++) {
                 // start = performance.now();
                 this.device.queue.writeBuffer(
                     treeInfoBuffer,
@@ -678,11 +656,11 @@ export class ForceDirected {
                 computePassEncoder = commandEncoder.beginComputePass();
                 computePassEncoder.setBindGroup(0, createTreeBindGroup);
                 computePassEncoder.setPipeline(this.createTreePipeline);
-                computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / (128 * this.clusterSize**(i+1))), 1, 1);
+                computePassEncoder.dispatchWorkgroups(Math.ceil(this.nodeLength / (128 * this.clusterSize**(i+1))), 1, 1);
                 computePassEncoder.end();
                 this.device.queue.submit([commandEncoder.finish()]);
                 // await this.device.queue.onSubmittedWorkDone();
-                maxIndex += Math.ceil(nodeLength / this.clusterSize**(i+1))
+                maxIndex += Math.ceil(this.nodeLength / this.clusterSize**(i+1))
                 // end = performance.now();
                 // console.log(`Create Tree iter ${i} took ${end - start}ms`)
             }
@@ -699,7 +677,7 @@ export class ForceDirected {
             totalTree += endTot - startTot;
             console.log(`Create Tree took ${endTot - startTot}ms`)
             {
-                // console.log(nodeLength);
+                // console.log(this.nodeLength);
                 // var dbgBuffer = this.device.createBuffer({
                 //     size: treeBuffer.size,
                 //     usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
@@ -716,11 +694,11 @@ export class ForceDirected {
                 // console.log(debugValsf);
                 // console.log(maxIndex * 16);
                 // var sum_size = 0;
-                // for (var tt = nodeLength * 16 + 16; tt < maxIndex * 16 + 16; tt += 16) {
+                // for (var tt = this.nodeLength * 16 + 16; tt < maxIndex * 16 + 16; tt += 16) {
                 //     sum_size += debugValsf[tt + 2];
                 // }
-                // console.log(sum_size / (maxIndex - nodeLength));
-                // total_sumsize += sum_size / (maxIndex - nodeLength);
+                // console.log(sum_size / (maxIndex - this.nodeLength));
+                // total_sumsize += sum_size / (maxIndex - this.nodeLength);
                 // dbgBuffer.destroy();
                 // var dbgBufferu = this.device.createBuffer({
                 //     size: treeBuffer.size,
@@ -780,7 +758,7 @@ export class ForceDirected {
 
             // Run attract forces pass
             const attractBindGroup = this.device.createBindGroup({
-                layout: this.computeAttractiveNewPipeline.getBindGroupLayout(0),
+                layout: this.computeAttractivePipeline.getBindGroupLayout(0),
                 entries: [
                     {
                         binding: 0,
@@ -825,8 +803,8 @@ export class ForceDirected {
             // Run attract forces pass
             computePassEncoder = commandEncoder.beginComputePass();
             computePassEncoder.setBindGroup(0, attractBindGroup);
-            computePassEncoder.setPipeline(this.computeAttractiveNewPipeline);
-            computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / 128), 1, 1);
+            computePassEncoder.setPipeline(this.computeAttractivePipeline);
+            computePassEncoder.dispatchWorkgroups(Math.ceil(this.nodeLength / 128), 1, 1);
             computePassEncoder.end();
 
             this.device.queue.submit([commandEncoder.finish()]);
@@ -842,7 +820,7 @@ export class ForceDirected {
             const pass = commandEncoder.beginComputePass();
             pass.setBindGroup(0, computeForcesBHBindGroup);
             pass.setPipeline(this.computeForcesBHPipeline);
-            pass.dispatchWorkgroups(Math.ceil(nodeLength / 128), 1, 1);
+            pass.dispatchWorkgroups(Math.ceil(this.nodeLength / 128), 1, 1);
             pass.end();
             this.device.queue.submit([commandEncoder.finish()]);
             if (debug) {await this.device.queue.onSubmittedWorkDone();}
@@ -893,24 +871,8 @@ export class ForceDirected {
             // Run apply forces pass
             computePassEncoder.setBindGroup(0, applyBindGroup);
             computePassEncoder.setPipeline(this.applyForcesPipeline);
-            computePassEncoder.dispatchWorkgroups(Math.ceil(nodeLength / (2 * 128)), 1, 1);
+            computePassEncoder.dispatchWorkgroups(Math.ceil(this.nodeLength / (2 * 128)), 1, 1);
             computePassEncoder.end();
-
-            // commandEncoder.copyBufferToBuffer(
-            //     rangeBuffer /* source buffer */,
-            //     0 /* source offset */,
-            //     gpuReadBuffer /* destination buffer */,
-            //     0 /* destination offset */,
-            //     4 * 4 /* size */
-            // );
-
-            // commandEncoder.copyBufferToBuffer(
-            //     this.nodeDataBuffer,
-            //     0,
-            //     positionReadBuffer,
-            //     0,
-            //     nodeLength * 4 * 4
-            // );
 
             this.device.queue.submit([commandEncoder.finish()]);
             if (debug) {await this.device.queue.onSubmittedWorkDone();}
@@ -949,56 +911,22 @@ export class ForceDirected {
             // if (output[11] > 0) {
             //     break;
             // }
-            // this.coolingFactor = this.coolingFactor * 0.99;
-            this.coolingFactor = this.coolingFactor * 0.9;
-            if (numIterations % 20 == 0 && numIterations < iterationCount - 20) {
-                if (!this.stopForce) {
-                    this.coolingFactor = this.energy;
-                }
-            }
-            iterRef.current!.innerText = `Iteration ${numIterations}`;
+            this.coolingFactor = this.coolingFactor * 0.975;
             if (debug) {await this.device.queue.onSubmittedWorkDone();}
             const frameEnd = performance.now();
             console.log(`Total frame time: ${frameEnd - frameStart}`);
             totalTime += frameEnd - frameStart;
             if (numIterations % 10 == 0) {
-                requestAnimationFrame(frame);
                 await this.device.queue.onSubmittedWorkDone();
             }
         }
         await positionReadBuffer.mapAsync(GPUMapMode.READ);
-        // let positionArrayBuffer = positionReadBuffer.getMappedRange();
-        // let positionList = new Float32Array(positionArrayBuffer);
+
         await this.device.queue.onSubmittedWorkDone();
         const totalEnd = performance.now();
-        console.log(`Average tree node size: ${total_sumsize / 100}`);
 
-        // const iterAvg : number = iterationTimes.reduce(function(a, b) {return a + b}) / iterationTimes.length;
-        iterRef.current!.innerText = `Completed in ${numIterations} iterations with total time ${totalEnd - totalStart} average iteration time ${(totalEnd - totalStart) / (numIterations - 1)}`;
-        // let d3Format = this.formatToD3Format(
-        //     positionList,
-        //     edgeList,
-        //     nodeLength,
-        //     edgeLength
-        //   );
-        // let formattedNodeList = d3Format.nodeArray;
-        // let formattedEdgeList = d3Format.edgeArray;
-
-        // console.log(formattedNodeList, formattedEdgeList);
-        // const element = document.createElement("a");
-        // const textFile = new Blob([JSON.stringify(formattedEdgeList)], {type: 'application/json'});
-        // element.href = URL.createObjectURL(textFile);
-        // element.download = "BH_edges.json";
-        // document.body.appendChild(element); 
-        // element.click();
-        // const element2 = document.createElement("a");
-        // const textFile2 = new Blob([JSON.stringify(formattedNodeList)], {type: 'application/json'});
-        // element.href = URL.createObjectURL(textFile2);
-        // element.download = "BH_nodes.json";
-        // document.body.appendChild(element2); 
-        // element.click();
+        console.log(`Completed in ${numIterations} iterations with total time ${totalEnd - totalStart} average iteration time ${(totalEnd - totalStart) / (numIterations - 1)}`);
 
 
-        requestAnimationFrame(frame);
     }
 }
