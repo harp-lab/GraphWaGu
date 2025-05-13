@@ -7,7 +7,7 @@
 
     All shaders can be found in radix_sort.wgsl
 */
-import radix_sort from '../wgsl/radix_sort.wgsl?raw';
+import {radix_sort} from './wgsl-shaders';
 
 // IMPORTANT: the following constants have to be synced with the numbers in radix_sort.wgsl
 

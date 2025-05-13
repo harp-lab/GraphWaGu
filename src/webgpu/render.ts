@@ -1,7 +1,7 @@
-import node_vert from '../wgsl/node_vert.wgsl?raw';
-import node_frag from '../wgsl/node_frag.wgsl?raw';
-import edge_vert from '../wgsl/edge_vert.wgsl?raw';
-import edge_frag from '../wgsl/edge_frag.wgsl?raw';
+import {node_vert} from './wgsl-shaders';
+import {node_frag} from './wgsl-shaders';
+import {edge_vert} from './wgsl-shaders';
+import {edge_frag} from './wgsl-shaders';
 import { Controller } from './ez_canvas_controller';
 import { ForceDirected } from './force_directed';
 import { getBuffer } from './utils';

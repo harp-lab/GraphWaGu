@@ -1,37 +1,55 @@
 {
-  "name": "GraphWaGu",
-  "version": "0.1.0",
-  "main": "./dist/graphwagu.mjs",
-  "private": true,
-  "dependencies": {
-    "@types/file-saver": "^2.0.7",
-    "@types/react": "^18.2.12",
-    "@types/react-dom": "^18.2.5",
-    "@webgpu/types": "^0.1.30",
-    "file-saver": "^2.0.5",
-    "react": "^18.2.0",
-    "react-bootstrap": "^2.7.4",
-    "react-collapsible": "^2.10.0",
-    "react-dom": "^18.2.0",
-    "react-markdown": "^8.0.7",
-    "react-select": "^5.7.3"
+  "name": "graphwagu",
+  "version": "0.7.0",
+  "type": "module",
+  "main": "./dist/graphwagu.js",
+  "module": "./dist/graphwagu.js",
+  "types": "./dist/graphwagu.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/graphwagu.js",
+      "types": "./dist/graphwagu.d.ts"
+    }
   },
+  "files": [
+    "dist/",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build --mode html",
     "build-html": "tsc && vite build --mode html",
-    "build-lib": "tsc && vite build --mode lib",
+    "build-lib": "node scripts/build-shaders.mjs && tsc --project tsconfig.lib.json && vite build --mode lib",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "deploy": "pnpm run build-html && sh deploy.sh",
     "prepublishOnly": "pnpm run build-lib"
   },
+  "dependencies": {
+    "@webgpu/types": "^0.1.30"
+  },
+  "peerDependencies": {
+    "@webgpu/types": "^0.1.30"
+  },
   "devDependencies": {
+    "@types/file-saver": "^2.0.7",
+    "@types/react": "^18.2.12",
+    "@types/react-dom": "^18.2.5",
     "@vitejs/plugin-react-swc": "^3.3.2",
     "bootstrap": "^5.3.0",
+    "file-saver": "^2.0.5",
     "gh-pages": "^3.2.3",
+    "react": "^18.2.0",
+    "react-bootstrap": "^2.7.4",
+    "react-collapsible": "^2.10.0",
+    "react-dom": "^18.2.0",
+    "react-markdown": "^8.0.7",
+    "react-select": "^5.7.3",
     "typescript": "^5.1.3",
     "vite": "^4.3.9",
+    "vite-plugin-dts": "^4.5.3",
     "vite-plugin-glsl": "^1.1.2"
   },
   "homepage": "https://harp-lab.github.io/GraphWaGu/"

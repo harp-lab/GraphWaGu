@@ -1,15 +1,15 @@
 import { RefObject } from 'react';
-import apply_forces from '../wgsl/apply_forces.wgsl?raw';
-import create_adjacency_matrix from '../wgsl/create_adjacency_matrix.wgsl?raw';
+import {apply_forces} from './wgsl-shaders';
+import {create_adjacency_matrix} from './wgsl-shaders';
 // import create_quadtree from '../wgsl/create_quadtree.wgsl?raw';
-import create_targetlist from '../wgsl/create_targetlist.wgsl?raw';
-import create_sourcelist from '../wgsl/create_sourcelist.wgsl?raw';
-import compute_attract_forces from '../wgsl/compute_attract_forces.wgsl?raw';
-import compute_forces from '../wgsl/compute_forces.wgsl?raw';
-import compute_forcesBH from '../wgsl/compute_forcesBH.wgsl?raw';
-import compute_attractive_new from '../wgsl/compute_attractive_new.wgsl?raw';
-import morton_codes from '../wgsl/morton_codes.wgsl?raw';
-import create_tree from '../wgsl/create_tree.wgsl?raw';
+import {create_targetlist} from './wgsl-shaders';
+import {create_sourcelist} from './wgsl-shaders';
+import {compute_attract_forces} from './wgsl-shaders';
+import {compute_forces} from './wgsl-shaders';
+import {compute_forcesBH} from './wgsl-shaders';
+import {compute_attractive_new} from './wgsl-shaders';
+import {morton_codes} from './wgsl-shaders';
+import {create_tree} from './wgsl-shaders';
 import { GPUSorter } from './sort';
 
 export class ForceDirected {
