@@ -1,19 +1,127 @@
-# GraphWaGu
+# ForceDirected API Reference
 
-This repo holds the source code to GraphWaGu, the project described in "GraphWaGu: GPU Powered Large Scale Graph Layout
-Computation and Rendering for the Web." This project provides a tool for computing layout and rendering for graphs in the browser using the WebGPU API. It provides features for adjusting the cooling factor and ideal length to manipulate the graphs output by the Fruchterman-Reingold and Barnes-Hut algorithms defined in the paper above. As of now, support is only for undirected, 2-dimensional graphs via json files in the format (same as D3) of lists of nodes and edges. [Paper PDF](https://drive.google.com/file/d/16PWup93vFLCWqQexop2IfRyMeQGniLqa/view)
+A GPU-accelerated force-directed graph layout algorithm using WebGPU. Layouts are computed fully on GPU with Barnes-Hut Approximation.
 
-## Demo
-While this repo holds the source code and can be run locally, a fully functioning demo of this tool is available [here](https://harp-lab.github.io/GraphWaGu/). I recommend checking this out first, it doesn't require enabling any developer settings if you use Google Chrome and includes example datasets and the ability to choose your own local files.
+## Installation
 
-## Compile and Run
-
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app). In order to run this project, you must run:
+```bash
+npm install graphwagu
 ```
-pnpm i
-pnpm run dev
-```
-The project will then be hosted on localhost:3000 and can be visited by a browser compatible with WebGPU. If you are using Chrome, enable the setting at chrome://flags/#enable-unsafe-webgpu. If you are using Safari, first enable the Developer Menu (Preferences > Advanced), then check Develop > Experimental Features > WebGPU.
 
-## Contact
-If you have questions or comments, feel free to contact me (Landon Dyken) at `ldyke@uic.edu`.
+## Usage
+
+```javascript
+import { ForceDirected } from 'graphwagu';
+
+// Initialize with WebGPU device (with limits available to your hardware)
+const adapter = await navigator.gpu.requestAdapter();
+const device = await adapter.requestDevice({
+    requiredLimits: {
+        maxStorageBufferBindingSize: adapter.limits.maxStorageBufferBindingSize,
+        maxComputeWorkgroupsPerDimension: adapter.limits.maxComputeWorkgroupsPerDimension,
+        maxBufferSize: adapter.limits.maxBufferSize,
+        maxComputeInvocationsPerWorkgroup: adapter.limits.maxComputeInvocationsPerWorkgroup,
+        maxComputeWorkgroupStorageSize: adapter.limits.maxComputeWorkgroupStorageSize
+    }}
+);
+const forceDirected = new ForceDirected(device);
+
+// Set node and edge data
+const nodes = [
+  /* value, x, y, size for each node */
+  0, 0.2, 0.1, 0,
+  0, 0.5, -0.1, 0,
+  // ...
+];
+const edges = [
+  /* source, target pairs */
+  0, 1,  // Edge from node 0 to node 1
+  1, 2,  // Edge from node 1 to node 2
+  // ...
+];
+
+forceDirected.setNodeEdgeData(nodes, edges);
+
+// Run the simulation
+await forceDirected.runForces();
+
+// Updated node positions are in forceDirected.nodeDataBuffer (GPUBuffer)
+```
+
+## Class: ForceDirected
+
+### Constructor
+
+#### `new ForceDirected(device: GPUDevice)`
+
+Creates a new ForceDirected instance.
+
+**Parameters:**
+- `device` - A WebGPU device instance
+
+**Example:**
+```javascript
+const forceDirected = new ForceDirected(device);
+```
+
+### Properties
+
+#### `coolingFactor: number`
+The cooling factor applied to the simulation (default: `0.985`). Controls how quickly the simulation stabilizes.
+
+#### `theta: number`
+The theta parameter for Barnes-Hut approximation (default: `0.8`). Lower values increase accuracy but decrease performance.
+
+#### `l: number`
+The ideal edge length parameter (default: `0.01`).
+
+#### `iterationCount: number`
+The number of iterations to run in one call to runForces() (default: `1`).
+
+### Methods
+
+#### `setNodeEdgeData(nodes: number[], edges: number[]): void`
+
+Sets the node and edge data for the simulation.
+
+**Parameters:**
+- `nodes` - Array of node data in format `[value, x, y, size, value, x, y, size, ...]` where each group of 4 represents position (x, y) along with size and value (TODO: have size and value affect simulation) of a node
+- `edges` - Array of edge data in format `[source, target, source, target, ...]` where each pair represents an edge between two nodes
+
+**Example:**
+```javascript
+const nodes = [
+  0, 0.2, 0.1, 0, // Node 0: position (0.2, 0.1)
+  0, 0.5, -0.1, 0, // Node 1: position (0.5, -0.1)
+];
+const edges = [
+  0, 1,  // Edge between node 0 and 1
+];
+forceDirected.setNodeEdgeData(nodes, edges);
+```
+
+#### `runForces(coolingFactor?: number, l?: number, theta?: number, iterationCount?: number): Promise<void>`
+
+Runs the force-directed simulation.
+
+**Parameters:**
+- `coolingFactor` - Optional cooling factor (default: uses class property)
+- `l` - Optional ideal edge length (default: uses class property)
+- `theta` - Optional approximation parameter (default: uses class property)
+- `iterationCount` - Optional number of iterations (default: uses class property)
+
+**Returns:** Promise that resolves when simulation is complete
+
+**Example:**
+```javascript
+// Run with default parameters
+await forceDirected.runForces();
+
+// Run with custom parameters
+await forceDirected.runForces(0.99, 0.1, 1.5, 100);
+```
+
+## Requirements
+
+- WebGPU-compatible browser
+- Access to `navigator.gpu` API

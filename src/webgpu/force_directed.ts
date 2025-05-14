@@ -21,12 +21,10 @@ export class ForceDirected {
     public computeAttractivePipeline: GPUComputePipeline;
     public computeForcesBHPipeline: GPUComputePipeline;
     public applyForcesPipeline: GPUComputePipeline;
-    public iterationCount: number = 10000;
-    public force: number = 1000.0;
+    public iterationCount: number = 1;
     public mortonCodePipeline: GPUComputePipeline;
     public mortonCodeBuffer: GPUBuffer;
-    public energy: number = 0.1;
-    public theta: number = 2;
+    public theta: number = 0.8;
     public l: number = 0.01;
     public stopForce: boolean = false;
     clusterSize: number;
@@ -245,18 +243,14 @@ export class ForceDirected {
 
     async runForces(
         coolingFactor = this.coolingFactor, l = this.l,
-        energy: number = this.energy, theta: number = this.theta,
-        iterationCount = this.iterationCount,
+        theta: number = this.theta, iterationCount = this.iterationCount
     ) {
         this.stopForce = false;
-        // coolingFactor = 0.995;
-        // l = 0.01;
         if (this.nodeLength === 0 || this.edgeLength === 0 || this.nodeDataBuffer === null || this.edgeDataBuffer === null) {
             console.log("No data to run");
             return;
         }
         this.l = l;
-        this.energy = energy;
         this.theta = theta;
         this.coolingFactor = coolingFactor;
         this.iterationCount = iterationCount;
